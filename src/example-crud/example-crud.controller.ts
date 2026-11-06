@@ -39,7 +39,7 @@ export class ExampleCrudController {
 
   @Get('hello-world')
   helloWorld() {
-    return { message: 'Hello, world!' };
+    return { message: 'Hello, world! 2' };
   }
 
   @Get('auth-test')
