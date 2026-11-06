@@ -1,0 +1,18 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  service-ai-publisher:
+    build: .
+    container_name: service-ai-publisher
+    restart: unless-stopped
+    ports:
+      - "3014:3014"
+    env_file:
+      - .env
+    networks:
+      - ngx-net
+
+networks:
+  ngx-net:
+    external: true

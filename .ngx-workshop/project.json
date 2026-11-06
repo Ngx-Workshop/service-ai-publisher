@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "kind": "service",
+  "name": "service-ai-publisher",
+  "org": "Ngx-Workshop",
+  "seed": "seed-service-nestjs",
+  "port": 3014,
+  "apiPrefix": "ai-publisher",
+  "contractsPackage": "@tmdjr/service-ai-publisher-contracts"
+}
