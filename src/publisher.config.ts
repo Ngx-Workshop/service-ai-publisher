@@ -1,0 +1,97 @@
+import { isAbsolute } from 'node:path';
+import { z } from 'zod';
+import { publishingModelSchema } from './publishing/publishing.schemas';
+export const REQUEST_BYTES = 64 * 1024;
+export const RESPONSE_BYTES = 2 * 1024 * 1024;
+export const UPSTREAM_TIMEOUT_MS = 5000;
+export const PUBLISHER_CONFIG = Symbol('PUBLISHER_CONFIG');
+const upstreamUrl = z
+  .string()
+  .url()
+  .refine((value) => {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      return false;
+    }
+    return (
+      ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash
+    );
+  }, 'Use a trusted HTTP(S) base URL without credentials, query or fragment');
+const configSchema = z.object({
+  DOCUMENT_BASE_URL: upstreamUrl,
+  CODING_LABS_BASE_URL: upstreamUrl,
+  PORT: z.coerce.number().int().min(1).max(65535).default(3014),
+  NODE_ENV: z.string().optional(),
+});
+export function loadPublisherConfig(environment: NodeJS.ProcessEnv) {
+  const parsed = configSchema.safeParse(environment);
+  if (!parsed.success) {
+    const fields = [
+      ...new Set(
+        parsed.error.issues.map((issue) => issue.path.join('.') || 'NODE_ENV')
+      ),
+    ];
+    throw new Error(`Invalid publisher configuration: ${fields.join(', ')}`);
+  }
+  return {
+    documentBaseUrl: parsed.data.DOCUMENT_BASE_URL.replace(/\/$/, ''),
+    codingLabsBaseUrl: parsed.data.CODING_LABS_BASE_URL.replace(/\/$/, ''),
+    publishing:
+      environment.PUBLISHING_ENABLED === 'true'
+        ? {
+            assessmentBaseUrl: upstreamUrl
+              .parse(environment.ASSESSMENT_BASE_URL)
+              .replace(/\/$/, ''),
+            uploaderBaseUrl: upstreamUrl
+              .parse(environment.UPLOADER_BASE_URL)
+              .replace(/\/$/, ''),
+            journalDirectory: z
+              .string()
+              .min(1)
+              .refine(
+                isAbsolute,
+                'Use an absolute publishing journal directory'
+              )
+              .parse(environment.PUBLISHING_JOURNAL_DIRECTORY),
+            model: environment.PUBLISHING_MODEL,
+            models: environment.PUBLISHING_MODELS_JSON
+              ? z
+                  .array(publishingModelSchema)
+                  .min(1)
+                  .max(50)
+                  .refine(
+                    (models) =>
+                      new Set(models.map((m) => m.id)).size === models.length
+                  )
+                  .parse(JSON.parse(environment.PUBLISHING_MODELS_JSON))
+              : [
+                  {
+                    id: 'gpt-6.1-sol',
+                    inputUsdPerMillion: 2,
+                    outputUsdPerMillion: 10,
+                  },
+                  {
+                    id: 'gpt-6-luna',
+                    inputUsdPerMillion: 0.1,
+                    outputUsdPerMillion: 0.5,
+                  },
+                ],
+            imageModel:
+              environment.PUBLISHING_IMAGE_MODEL || 'gpt-image-2.5-sunburst',
+            apiKey: environment.OPENAI_API_KEY,
+          }
+        : undefined,
+    port: parsed.data.PORT,
+    runtime: { production: environment.NODE_ENV === 'production' },
+  };
+}
+type LoadedConfig = ReturnType<typeof loadPublisherConfig>;
+export type PublisherConfig = Omit<LoadedConfig, 'publishing'> & {
+  publishing?: LoadedConfig['publishing'];
+};

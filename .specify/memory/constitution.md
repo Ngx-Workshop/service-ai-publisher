@@ -1,15 +1,15 @@
 # Constitution — NestJS service seed
 
-Version: 1.0.0 · Adopted: 2026-09-29
+Version: 1.1.0 · Adopted: 2026-11-06
 
 These are requirements for future work, not claims that all seed code already
 satisfies them. Current gaps live in the development guide.
 
 ## 1. Own one bounded data domain
 
-Ngx-Workshop uses independently maintained services. This seed demonstrates CRUD
-for one MongoDB document type. Keep a new service focused on its assigned domain;
-do not manipulate another service's documents. Use explicit service contracts for
+Ngx-Workshop uses independently maintained services. This service owns workshop generation and publishing orchestration, with private
+receipt files and process-local preparation jobs. It has no MongoDB dependency.
+Do not manipulate another service's documents. Use explicit service contracts for
 cross-domain work. The gateway owns browser-facing aggregation and routing.
 
 ## 2. Make the HTTP contract explicit

@@ -9,3 +9,10 @@
 **/*.tsbuildinfo
 **/npm-debug.log*
 deploy-source.tar
+
+.oauth-local
+secrets
+.env.next
+image.tar
+image.tar.sha256
+image-id.txt

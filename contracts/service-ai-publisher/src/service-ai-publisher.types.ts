@@ -3,148 +3,759 @@
  * Do not make direct changes to the file.
  */
 
-export interface paths {
-    "/ai-publisher/auth-test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ExampleCrudController_authTest"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ai-publisher": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ExampleCrudController_findAll"];
-        put?: never;
-        post: operations["ExampleCrudController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ai-publisher/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ExampleCrudController_findOne"];
-        put?: never;
-        post?: never;
-        delete: operations["ExampleCrudController_remove"];
-        options?: never;
-        head?: never;
-        patch: operations["ExampleCrudController_update"];
-        trace?: never;
-    };
-    "/ai-publisher/name/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ExampleCrudController_findByName"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ai-publisher/{id}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["ExampleCrudController_archive"];
-        trace?: never;
-    };
-    "/ai-publisher/{id}/unarchive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["ExampleCrudController_unarchive"];
-        trace?: never;
-    };
-}
+export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AuthTestDto: {
-            message: string;
-        };
-        ExampleMongodbDocObjectDto: {
-            street: string;
-            city: string;
-            state: string;
-            zip: string;
-        };
-        CreateExampleMongodbDocDto: {
-            name: string;
+        PreparationReport: {
+            /** Format: uuid */
+            preparationId: string;
             /** @enum {string} */
-            type: "SOME_ENUM" | "SOME_OTHER_ENUM";
-            description?: string;
-            archived?: boolean;
-            exampleMongodbDocObject?: components["schemas"]["ExampleMongodbDocObjectDto"];
-            /** Format: date-time */
-            lastUpdated?: string;
+            status: "running" | "complete" | "failed";
+            ready: boolean;
+            createdAt: string;
+            updatedAt: string;
+            activities: {
+                id: string;
+                label: string;
+                /** @enum {string} */
+                kind: "skill" | "generation" | "check" | "review" | "repair";
+                /** @enum {string} */
+                status: "pending" | "running" | "passed" | "failed" | "skipped" | "review_required";
+                detail: string;
+                startedAt?: string;
+                finishedAt?: string;
+                skillVersion?: string;
+                skillHash?: string;
+            }[];
+            repairCount: number;
+            model?: string;
+            draft?: {
+                learningPlan?: {
+                    prerequisites: string[];
+                    objectives: {
+                        objective: string;
+                        pageIndexes: number[];
+                        labIndexes: number[];
+                        questionIndexes: number[];
+                    }[];
+                };
+                sectionId: string;
+                name: string;
+                summary: string;
+                level: number;
+                pages: {
+                    name: string;
+                    blocks: {
+                        blockId: string;
+                        sortIndex: number;
+                        /** @enum {string} */
+                        componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+                        savedAction: string;
+                        dataClean: string;
+                    }[];
+                }[];
+                labs: {
+                    metadata: {
+                        title: string;
+                        slug: string;
+                        summary: string;
+                        /** @enum {string} */
+                        difficulty: "intro" | "easy" | "medium" | "hard";
+                    };
+                    version: {
+                        /** @enum {string} */
+                        language: "javascript" | "typescript";
+                        promptMarkdown: string;
+                        hints: string[];
+                        starterCode: string;
+                        referenceSolution: {
+                            code: string;
+                        };
+                        sampleTests: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "io" | "unit";
+                            input?: unknown;
+                            expected?: unknown;
+                            comparator?: {
+                                /** @enum {string} */
+                                kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                                tolerance?: number;
+                                normalizeWhitespace?: boolean;
+                                ignoreCase?: boolean;
+                                customComparatorId?: string;
+                            };
+                            testCode?: string;
+                            /** @enum {string} */
+                            framework?: "jest" | "vitest";
+                        }[];
+                        hiddenTests: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "io" | "unit";
+                            input?: unknown;
+                            expected?: unknown;
+                            comparator?: {
+                                /** @enum {string} */
+                                kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                                tolerance?: number;
+                                normalizeWhitespace?: boolean;
+                                ignoreCase?: boolean;
+                                customComparatorId?: string;
+                            };
+                            testCode?: string;
+                            /** @enum {string} */
+                            framework?: "jest" | "vitest";
+                        }[];
+                        runner: {
+                            timeoutMs: number;
+                            entryFnName: string;
+                        };
+                    };
+                }[];
+                assessment: {
+                    name: string;
+                    subject: string;
+                    sectionTitle?: string;
+                    level: number;
+                    testQuestions: {
+                        question: string;
+                        choices: {
+                            value: string;
+                        }[];
+                        answer: string;
+                        correctResponse: string;
+                        incorrectResponse: string;
+                    }[];
+                };
+            };
+            draftHash?: string;
+            message?: string;
         };
-        ExampleMongodbDocDto: {
-            _id: string;
-            name: string;
+        PreparationActivity: {
+            id: string;
+            label: string;
             /** @enum {string} */
-            type: "SOME_ENUM" | "SOME_OTHER_ENUM";
+            kind: "skill" | "generation" | "check" | "review" | "repair";
+            /** @enum {string} */
+            status: "pending" | "running" | "passed" | "failed" | "skipped" | "review_required";
+            detail: string;
+            startedAt?: string;
+            finishedAt?: string;
+            skillVersion?: string;
+            skillHash?: string;
+        };
+        StartWorkshopPreparationInput: {
+            /** @enum {string} */
+            operation: "generate";
+            /** Format: uuid */
+            preparationId?: string;
+            input: {
+                brief: string;
+                model?: string;
+                sectionId: string;
+                level: number;
+            };
+        } | {
+            /** @enum {string} */
+            operation: "check";
+            /** Format: uuid */
+            preparationId?: string;
+            draft: unknown;
+        };
+        LearningPlan: {
+            prerequisites: string[];
+            objectives: {
+                objective: string;
+                pageIndexes: number[];
+                labIndexes: number[];
+                questionIndexes: number[];
+            }[];
+        };
+        PublishingModelCatalog: {
+            models: {
+                id: string;
+                inputUsdPerMillion: number | null;
+                outputUsdPerMillion: number | null;
+            }[];
+            defaultModel: string | null;
+            imageModel: string;
+        };
+        PublishingModel: {
+            id: string;
+            inputUsdPerMillion: number | null;
+            outputUsdPerMillion: number | null;
+        };
+        WorkshopDraft: {
+            learningPlan?: {
+                prerequisites: string[];
+                objectives: {
+                    objective: string;
+                    pageIndexes: number[];
+                    labIndexes: number[];
+                    questionIndexes: number[];
+                }[];
+            };
+            sectionId: string;
+            name: string;
+            summary: string;
+            level: number;
+            pages: {
+                name: string;
+                blocks: {
+                    blockId: string;
+                    sortIndex: number;
+                    /** @enum {string} */
+                    componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+                    savedAction: string;
+                    dataClean: string;
+                }[];
+            }[];
+            labs: {
+                metadata: {
+                    title: string;
+                    slug: string;
+                    summary: string;
+                    /** @enum {string} */
+                    difficulty: "intro" | "easy" | "medium" | "hard";
+                };
+                version: {
+                    /** @enum {string} */
+                    language: "javascript" | "typescript";
+                    promptMarkdown: string;
+                    hints: string[];
+                    starterCode: string;
+                    referenceSolution: {
+                        code: string;
+                    };
+                    sampleTests: {
+                        name: string;
+                        /** @enum {string} */
+                        kind: "io" | "unit";
+                        input?: unknown;
+                        expected?: unknown;
+                        comparator?: {
+                            /** @enum {string} */
+                            kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                            tolerance?: number;
+                            normalizeWhitespace?: boolean;
+                            ignoreCase?: boolean;
+                            customComparatorId?: string;
+                        };
+                        testCode?: string;
+                        /** @enum {string} */
+                        framework?: "jest" | "vitest";
+                    }[];
+                    hiddenTests: {
+                        name: string;
+                        /** @enum {string} */
+                        kind: "io" | "unit";
+                        input?: unknown;
+                        expected?: unknown;
+                        comparator?: {
+                            /** @enum {string} */
+                            kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                            tolerance?: number;
+                            normalizeWhitespace?: boolean;
+                            ignoreCase?: boolean;
+                            customComparatorId?: string;
+                        };
+                        testCode?: string;
+                        /** @enum {string} */
+                        framework?: "jest" | "vitest";
+                    }[];
+                    runner: {
+                        timeoutMs: number;
+                        entryFnName: string;
+                    };
+                };
+            }[];
+            assessment: {
+                name: string;
+                subject: string;
+                sectionTitle?: string;
+                level: number;
+                testQuestions: {
+                    question: string;
+                    choices: {
+                        value: string;
+                    }[];
+                    answer: string;
+                    correctResponse: string;
+                    incorrectResponse: string;
+                }[];
+            };
+        };
+        PublishingReceipt: {
+            /** Format: uuid */
+            requestId: string;
+            subject: string;
+            draftHash: string;
+            /** @enum {string} */
+            status: "running" | "complete" | "needs_recovery";
+            steps: {
+                name: string;
+                /** @enum {string} */
+                status: "pending" | "complete";
+                result?: unknown;
+            }[];
+            message?: string;
+            preparation?: {
+                /** Format: uuid */
+                preparationId: string;
+                /** @enum {string} */
+                status: "running" | "complete" | "failed";
+                ready: boolean;
+                createdAt: string;
+                updatedAt: string;
+                activities: {
+                    id: string;
+                    label: string;
+                    /** @enum {string} */
+                    kind: "skill" | "generation" | "check" | "review" | "repair";
+                    /** @enum {string} */
+                    status: "pending" | "running" | "passed" | "failed" | "skipped" | "review_required";
+                    detail: string;
+                    startedAt?: string;
+                    finishedAt?: string;
+                    skillVersion?: string;
+                    skillHash?: string;
+                }[];
+                repairCount: number;
+                model?: string;
+                draftHash?: string;
+                message?: string;
+            };
+        };
+        ManageDocumentInput: {
+            /** @enum {string} */
+            operation: "sections";
+        } | {
+            /** @enum {string} */
+            operation: "workshops";
+            sectionId: string;
+        } | {
+            /** @enum {string} */
+            operation: "read_page";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "create_workshop";
+            sectionId: string;
+            name: string;
+            summary: string;
+            level: number;
+        } | {
+            /** @enum {string} */
+            operation: "update_workshop";
+            id: string;
+            name: string;
+            summary: string;
+            level: number;
+        } | {
+            /** @enum {string} */
+            operation: "delete_workshop";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "create_page";
+            workshopId: string;
+            name: string;
+            blocks: {
+                blockId: string;
+                sortIndex: number;
+                /** @enum {string} */
+                componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+                savedAction: string;
+                dataClean: string;
+            }[];
+        } | {
+            /** @enum {string} */
+            operation: "update_page";
+            id: string;
+            blocks: {
+                blockId: string;
+                sortIndex: number;
+                /** @enum {string} */
+                componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+                savedAction: string;
+                dataClean: string;
+            }[];
+        } | {
+            /** @enum {string} */
+            operation: "rename_page";
+            id: string;
+            workshopId: string;
+            name: string;
+        } | {
+            /** @enum {string} */
+            operation: "delete_page";
+            id: string;
+            workshopId: string;
+            name: string;
+        } | {
+            /** @enum {string} */
+            operation: "add_reference";
+            workshopId: string;
+            /** @enum {string} */
+            kind: "CODING_LAB" | "ASSESSMENT_TEST";
+            resourceId: string;
+            name: string;
+        };
+        ManageAssessmentInput: {
+            /** @enum {string} */
+            operation: "list";
+        } | {
+            /** @enum {string} */
+            operation: "read";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "create";
+            assessment: {
+                name: string;
+                subject: string;
+                sectionTitle?: string;
+                level: number;
+                testQuestions: {
+                    question: string;
+                    choices: {
+                        value: string;
+                    }[];
+                    answer: string;
+                    correctResponse: string;
+                    incorrectResponse: string;
+                }[];
+            };
+        } | {
+            /** @enum {string} */
+            operation: "update";
+            id: string;
             version: number;
-            description: string;
-            /** Format: date-time */
-            lastUpdated: string;
-            archived: boolean;
-            exampleMongodbDocObject?: components["schemas"]["ExampleMongodbDocObjectDto"];
-            __v: number;
-        };
-        UpdateExampleMongodbDocDto: {
-            name?: string;
+            assessment: {
+                name: string;
+                subject: string;
+                sectionTitle?: string;
+                level: number;
+                testQuestions: {
+                    question: string;
+                    choices: {
+                        value: string;
+                    }[];
+                    answer: string;
+                    correctResponse: string;
+                    incorrectResponse: string;
+                }[];
+            };
+        } | {
             /** @enum {string} */
-            type?: "SOME_ENUM" | "SOME_OTHER_ENUM";
-            description?: string;
-            archived?: boolean;
-            exampleMongodbDocObject?: components["schemas"]["ExampleMongodbDocObjectDto"];
-            /** Format: date-time */
-            lastUpdated?: string;
+            operation: "delete";
+            id: string;
+        };
+        ManageCodingLabInput: {
+            /** @enum {string} */
+            operation: "list";
+        } | {
+            /** @enum {string} */
+            operation: "read";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "create";
+            workshopId: string;
+            metadata: {
+                title: string;
+                slug: string;
+                summary: string;
+                /** @enum {string} */
+                difficulty: "intro" | "easy" | "medium" | "hard";
+            };
+        } | {
+            /** @enum {string} */
+            operation: "update";
+            id: string;
+            metadata: {
+                title: string;
+                slug: string;
+                summary: string;
+                /** @enum {string} */
+                difficulty: "intro" | "easy" | "medium" | "hard";
+            };
+        } | {
+            /** @enum {string} */
+            operation: "delete";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "versions";
+            id: string;
+        } | {
+            /** @enum {string} */
+            operation: "read_version";
+            id: string;
+            versionId: string;
+        } | {
+            /** @enum {string} */
+            operation: "create_version";
+            id: string;
+            version: {
+                /** @enum {string} */
+                language: "javascript" | "typescript";
+                promptMarkdown: string;
+                hints: string[];
+                starterCode: string;
+                referenceSolution: {
+                    code: string;
+                };
+                sampleTests: {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "io" | "unit";
+                    input?: unknown;
+                    expected?: unknown;
+                    comparator?: {
+                        /** @enum {string} */
+                        kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                        tolerance?: number;
+                        normalizeWhitespace?: boolean;
+                        ignoreCase?: boolean;
+                        customComparatorId?: string;
+                    };
+                    testCode?: string;
+                    /** @enum {string} */
+                    framework?: "jest" | "vitest";
+                }[];
+                hiddenTests: {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "io" | "unit";
+                    input?: unknown;
+                    expected?: unknown;
+                    comparator?: {
+                        /** @enum {string} */
+                        kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                        tolerance?: number;
+                        normalizeWhitespace?: boolean;
+                        ignoreCase?: boolean;
+                        customComparatorId?: string;
+                    };
+                    testCode?: string;
+                    /** @enum {string} */
+                    framework?: "jest" | "vitest";
+                }[];
+                runner: {
+                    timeoutMs: number;
+                    entryFnName: string;
+                };
+            };
+        } | {
+            /** @enum {string} */
+            operation: "update_version";
+            id: string;
+            versionId: string;
+            expectedContentHash: string;
+            version: {
+                /** @enum {string} */
+                language: "javascript" | "typescript";
+                promptMarkdown: string;
+                hints: string[];
+                starterCode: string;
+                referenceSolution: {
+                    code: string;
+                };
+                sampleTests: {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "io" | "unit";
+                    input?: unknown;
+                    expected?: unknown;
+                    comparator?: {
+                        /** @enum {string} */
+                        kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                        tolerance?: number;
+                        normalizeWhitespace?: boolean;
+                        ignoreCase?: boolean;
+                        customComparatorId?: string;
+                    };
+                    testCode?: string;
+                    /** @enum {string} */
+                    framework?: "jest" | "vitest";
+                }[];
+                hiddenTests: {
+                    name: string;
+                    /** @enum {string} */
+                    kind: "io" | "unit";
+                    input?: unknown;
+                    expected?: unknown;
+                    comparator?: {
+                        /** @enum {string} */
+                        kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                        tolerance?: number;
+                        normalizeWhitespace?: boolean;
+                        ignoreCase?: boolean;
+                        customComparatorId?: string;
+                    };
+                    testCode?: string;
+                    /** @enum {string} */
+                    framework?: "jest" | "vitest";
+                }[];
+                runner: {
+                    timeoutMs: number;
+                    entryFnName: string;
+                };
+            };
+        } | {
+            /** @enum {string} */
+            operation: "verify";
+            id: string;
+            versionId: string;
+        } | {
+            /** @enum {string} */
+            operation: "publish";
+            id: string;
+            versionId: string;
+            expectedContentHash: string;
+        };
+        WorkshopImageInput: {
+            /** @enum {string} */
+            operation: "find";
+            query: string;
+        } | {
+            /** @enum {string} */
+            operation: "generate";
+            prompt: string;
+            name: string;
+        } | {
+            /** @enum {string} */
+            operation: "upload";
+            name: string;
+            /** @enum {string} */
+            mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+            base64: string;
+        };
+        EditorBlock: {
+            blockId: string;
+            sortIndex: number;
+            /** @enum {string} */
+            componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+            savedAction: string;
+            dataClean: string;
+        };
+        PublishingResult: {
+            data: unknown;
+        };
+        GenerateWorkshopDraftInput: {
+            brief: string;
+            model?: string;
+            sectionId: string;
+            level: number;
+        };
+        PublishWorkshopInput: {
+            /** Format: uuid */
+            requestId: string;
+            draft: {
+                learningPlan?: {
+                    prerequisites: string[];
+                    objectives: {
+                        objective: string;
+                        pageIndexes: number[];
+                        labIndexes: number[];
+                        questionIndexes: number[];
+                    }[];
+                };
+                sectionId: string;
+                name: string;
+                summary: string;
+                level: number;
+                pages: {
+                    name: string;
+                    blocks: {
+                        blockId: string;
+                        sortIndex: number;
+                        /** @enum {string} */
+                        componentInstanceName: "HeaderBlockComponent" | "ParagraphBlockComponent" | "NgxEditorJs2BlockquotesComponent" | "NgxEditorJs2PanelComponent" | "NgxEditorJs2ImageComponent" | "NgxEditorJs2CodemirrorComponent" | "NgxEditorJs2MermaidjsComponent" | "NgxEditorJs2PopQuizComponent";
+                        savedAction: string;
+                        dataClean: string;
+                    }[];
+                }[];
+                labs: {
+                    metadata: {
+                        title: string;
+                        slug: string;
+                        summary: string;
+                        /** @enum {string} */
+                        difficulty: "intro" | "easy" | "medium" | "hard";
+                    };
+                    version: {
+                        /** @enum {string} */
+                        language: "javascript" | "typescript";
+                        promptMarkdown: string;
+                        hints: string[];
+                        starterCode: string;
+                        referenceSolution: {
+                            code: string;
+                        };
+                        sampleTests: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "io" | "unit";
+                            input?: unknown;
+                            expected?: unknown;
+                            comparator?: {
+                                /** @enum {string} */
+                                kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                                tolerance?: number;
+                                normalizeWhitespace?: boolean;
+                                ignoreCase?: boolean;
+                                customComparatorId?: string;
+                            };
+                            testCode?: string;
+                            /** @enum {string} */
+                            framework?: "jest" | "vitest";
+                        }[];
+                        hiddenTests: {
+                            name: string;
+                            /** @enum {string} */
+                            kind: "io" | "unit";
+                            input?: unknown;
+                            expected?: unknown;
+                            comparator?: {
+                                /** @enum {string} */
+                                kind: "deepEqual" | "strictEqual" | "numberTolerance" | "stringNormalized" | "custom";
+                                tolerance?: number;
+                                normalizeWhitespace?: boolean;
+                                ignoreCase?: boolean;
+                                customComparatorId?: string;
+                            };
+                            testCode?: string;
+                            /** @enum {string} */
+                            framework?: "jest" | "vitest";
+                        }[];
+                        runner: {
+                            timeoutMs: number;
+                            entryFnName: string;
+                        };
+                    };
+                }[];
+                assessment: {
+                    name: string;
+                    subject: string;
+                    sectionTitle?: string;
+                    level: number;
+                    testQuestions: {
+                        question: string;
+                        choices: {
+                            value: string;
+                        }[];
+                        answer: string;
+                        correctResponse: string;
+                        incorrectResponse: string;
+                    }[];
+                };
+            };
+            /** Format: uuid */
+            preparationId?: string;
         };
     };
     responses: never;
@@ -154,197 +765,4 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export interface operations {
-    ExampleCrudController_authTest: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthTestDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_findAll: {
-        parameters: {
-            query?: {
-                /** @description Filter by archived status */
-                archived?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"][];
-                };
-            };
-        };
-    };
-    ExampleCrudController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateExampleMongodbDocDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ExampleCrudController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateExampleMongodbDocDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_findByName: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                name: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_archive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-    ExampleCrudController_unarchive: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ExampleMongodbDocDto"];
-                };
-            };
-        };
-    };
-}
+export type operations = Record<string, never>;

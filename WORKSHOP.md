@@ -1,12 +1,9 @@
-# service-ai-publisher integration checklist
+# Integration checklist
 
-Native API: /ai-publisher; browser API: /api/ai-publisher.
-Default port: 3014. Confirm this port is available on your service host.
-Contracts: @tmdjr/service-ai-publisher-contracts; directory: contracts/service-ai-publisher.
-The gateway snippet below strips /api and preserves /ai-publisher. Replace the example host with your actual private service host.
-MongoDB and auth are external prerequisites. Compose requires the external ngx-net network.
-The inherited example CRUD endpoints remain unguarded; only auth-test uses RemoteAuthGuard. Choose access policy and adapt example DTOs/schema/tests before production use.
+service-ai-publisher owns workshop authoring at native `/publisher/tools` and
+`/mcp/publishing`, port 3014. The gateway forwards existing browser `/api/publisher/tools`
+and agent publishing requests. There is no `/ai-publisher` CRUD API and no MongoDB.
 
-Scaffolding saves seed deployment examples in .ngx-workshop/workflows. Run ngx-workshop deploy . to publish and deploy this project. For services, the CLI updates/pushes Nginx and waits for its deployment to succeed before dispatching service deployment. Configure Actions secrets first; see the CLI deployment guide. Contracts publishing and MFE registration remain separate operations.
-
-The inherited architecture/development docs describe example behavior; the identity, port, and route settings in this file take precedence. Update those docs and AGENTS.md after implementing the product. Existing source-baseline commits refer to the seed, not this new repository.
+Use the host-owned environment and existing receipt volume described in
+[cutover](docs/migration.md). Deploy only after draining the legacy writer. Current
+architecture and development docs supersede the seed adoption baseline.

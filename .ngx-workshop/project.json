@@ -5,6 +5,6 @@
   "org": "Ngx-Workshop",
   "seed": "seed-service-nestjs",
   "port": 3014,
-  "apiPrefix": "ai-publisher",
+  "apiPrefix": "publisher",
   "contractsPackage": "@tmdjr/service-ai-publisher-contracts"
 }

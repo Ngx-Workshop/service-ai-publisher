@@ -1,39 +1,23 @@
 # Agent entry point — service-ai-publisher
 
-This repository is the NestJS service seed for Ngx-Workshop. Assume you have
-access to this repository only. Frontends, gateway, auth service, and other data
-services are external owners; do not require their source to begin local work.
+Read [.specify/memory/constitution.md](.specify/memory/constitution.md),
+[architecture](docs/architecture.md), [development](docs/development.md),
+[workflow](.specify/README.md) and the relevant [feature](specs/README.md).
 
-## Read before implementation
+This service owns workshop generation, images, preparation, publishing orchestration
+and durable private receipts. It has no MongoDB. Domain data belongs to REST owners.
+The catalog gateway retains only forwarding compatibility; catalog OAuth belongs there.
 
-1. [Constitution](.specify/memory/constitution.md): durable design rules.
-2. [Architecture](docs/architecture.md): responsibilities, source map, external contracts.
-3. [Development](docs/development.md): commands, verification, known limitations.
-4. [Workflow](.specify/README.md): specify → plan → tasks → implement → verify.
-5. The relevant feature folder listed in [specs](specs/README.md), if one exists.
-
-For a newly cloned product repository, also follow [seed adoption](docs/seed-adoption.md).
-All links above resolve within this checkout. Do not assume a sibling repository exists.
-
-## Working rules
-
-- Inspect relevant source and `git status` before editing; preserve unrelated changes.
-- Maintain a local spec, plan, tasks, and handoff for features and behavior changes.
-  Small docs edits and mechanical fixes can use a concise change/verification summary.
-- Distinguish current implementation from intended rules. The seed's CRUD routes
-  are currently unguarded; only `auth-test` uses `RemoteAuthGuard`. Do not describe
-  this as a fully protected production API or silently expand authentication scope.
-- Keep controllers, DTO validation, service logic, and persistence responsibilities
-  clear. Do not access another service's collections to bypass its API.
-- Regenerate OpenAPI and local contracts for API changes; document consumer impact.
-  Do not hand-edit generated artifacts as the source of a contract change.
-- Use the explicit OpenAPI generation environment described in the development
-  guide. Generation stubs are not runtime authentication or database behavior.
-- Resolve routine choices and record assumptions. Ask only for missing decisions
-  that materially affect requirements or compatibility; continue independent work.
-- Verify changed behavior and record actual results, pre-existing failures, and
-  unavailable infrastructure separately. Do not report empty suites as coverage.
-- Update affected context docs and leave a handoff for external contract consumers.
-
-This is a Markdown workflow inspired by Spec Kit. It does not install Spec Kit,
-register slash commands, or require a particular AI tool.
+- Inspect git status and preserve unrelated changes. Maintain local spec/plan/tasks/handoff.
+- Require validated platform administrator credentials before JSON/tool processing;
+  never add a local auth bypass. Keep preparation and receipt ownership checks.
+- Use owner APIs and pinned published contracts; never access owner databases.
+- Schemas in src/publishing/publishing.schemas.ts own tool contracts. Regenerate
+  OpenAPI, mcp-tools.json and contracts after changes; never hand-edit generated files.
+- Keep all four versioned authoring SKILL.md assets in the built image.
+- Verify unit/HTTP/MCP behavior, strict build, lint:check and contract generation/build.
+  Tests use doubles and private temporary journals; never run paid generation as a test.
+- Preserve the host-owned environment and ngx-publisher-runs volume. Run one writer.
+  See docs/migration.md before cutover or rollback. Preparation jobs are process-local.
+- Main delivery publishes and deploys validated artifacts; a local build does neither.
+- Consumer changes need a standalone contract handoff and context-doc updates.

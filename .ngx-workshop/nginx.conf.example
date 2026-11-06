@@ -1,10 +1,11 @@
-# Include within the gateway's existing server block after reviewing the upstream.
-# Test with nginx -t before reloading. This file is not installed automatically.
-location ~ ^/api/ai-publisher(/|$) {
+# Existing production routes may remain on service-mcp-gateway's compatibility adapter.
+# Optional direct private routing, within the administrator server block only:
+location = /api/publisher/tools {
+    client_max_body_size 8m;
     rewrite ^/api(/.*)$ $1 break;
     proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_pass http://SERVICE_PRIVATE_HOST:3014;
+    proxy_read_timeout 600s;
+    proxy_pass http://service-ai-publisher:3014;
 }
+# Agent routing, if explicitly moved from the gateway:
+# location = /mcp/publishing { proxy_pass http://service-ai-publisher:3014; }

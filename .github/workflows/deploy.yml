@@ -1,179 +1,153 @@
-name: Deploy Ngx service-ai-publisher
+name: Publish and deploy AI publisher
 
 on:
+  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
-  group: service-ai-publisher-production
+  group: publisher-${{ github.ref == 'refs/heads/main' && 'production' || github.ref }}
   cancel-in-progress: false
-
 jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - name: Install and validate publisher and contracts
+        run: |
+          node --test scripts/test-publish-workflow.cjs
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts -p "test_deploy_production.py" -v
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+          npm run build
+          npm test -- --runInBand
+          npm run test:e2e -- --runInBand
+          npm run lint:check
+          npm --prefix contracts/service-ai-publisher ci
+          npm run contracts:service-ai-publisher:gen
+          npm run contracts:service-ai-publisher:build
+          git diff --exit-code -- openapi.json mcp-tools.json contracts/service-ai-publisher/src contracts/service-ai-publisher/dist
+      - name: Build validated deployment image
+        run: |
+          docker build --label org.opencontainers.image.revision="$GITHUB_SHA" --tag service-ai-publisher:candidate .
+          docker image inspect service-ai-publisher:candidate --format '{{.Id}}' > image-id.txt
+          docker run --rm --entrypoint node service-ai-publisher:candidate -e 'if(process.getuid() !== 1000) process.exit(1); require("fs").accessSync("dist/main.js"); require("@tmdjr/ngx-auth-client")'
+          docker run --rm --entrypoint sh service-ai-publisher:candidate -c 'test ! -e /usr/src/app/.oauth-local && test ! -e /usr/src/app/.env && test ! -e /usr/src/app/secrets'
+          docker save service-ai-publisher:candidate > image.tar
+          sha256sum image.tar > image.tar.sha256
+      - name: Retain validated deployment image
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: service-ai-publisher-candidate-${{ github.run_id }}
+          path: |
+            image.tar
+            image.tar.sha256
+            image-id.txt
+          overwrite: true
+          retention-days: 3
+          if-no-files-found: error
+
   publish:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-
-      - name: Setup Node 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '22'
-          check-latest: true
+          node-version: '22.23.3'
           package-manager-cache: false
-
-      - name: Install publishing CLI
+      - name: Build the committed release
         run: |
-          node - <<'NODE'
-          const [major, minor, patch] = process.versions.node.split('.').map(Number);
-          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
-            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
-          }
-          NODE
           npm install --global npm@12.1.0
-
-      - name: Generate OpenAPI spec
-        env:
-          GENERATE_OPENAPI: 'true'
-        run: |
           npm ci
           npm run build
-          npm run openapi
-
-      - name: Build contracts
-        working-directory: contracts/service-ai-publisher
-        run: |
-          npm ci
-          npm run gen
-          npm run build
-
-      - name: Set deterministic contract version
-        working-directory: contracts/service-ai-publisher
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const path = './package.json';
-          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
-          if (pkg.name !== '@tmdjr/service-ai-publisher-contracts') {
-            throw new Error('Unexpected contract package');
-          }
-
-          const [major, minor] = String(pkg.version).split('.');
-          const patch = process.env.GITHUB_RUN_NUMBER;
-          if (!/^\d+$/.test(patch || '')) {
-            throw new Error('Missing valid GitHub run number');
-          }
-
-          pkg.version = `${major}.${minor}.${patch}`;
-          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-          console.log('Publishing', pkg.name, pkg.version);
-          NODE
-
-      - name: Upload OpenAPI artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: service-ai-publisher-openapi
-          path: openapi.json
-          if-no-files-found: error
-
-      - name: Publish contracts using OIDC
+          npm --prefix contracts/service-ai-publisher ci
+          npm run contracts:service-ai-publisher:gen
+          npm run contracts:service-ai-publisher:build
+      - name: Publish through trusted OIDC
         working-directory: contracts/service-ai-publisher
         env:
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        run: npm publish --access public
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const { spawnSync } = require('node:child_process');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          if (pkg.name !== '@tmdjr/service-ai-publisher-contracts') throw new Error('Unexpected package');
+          if (!/^\d+$/.test(process.env.GITHUB_RUN_NUMBER || '')) throw new Error('Invalid run number');
+          const [major, minor] = pkg.version.split('.');
+          const version = `${major}.${minor}.${process.env.GITHUB_RUN_NUMBER}`;
+          const existing = spawnSync('npm', ['view', `${pkg.name}@${version}`, '--json'], { encoding: 'utf8' });
+          if (existing.status === 0) {
+            if (JSON.parse(existing.stdout).gitHead !== process.env.GITHUB_SHA) {
+              throw new Error('Published version belongs to a different commit');
+            }
+            console.log(`Already published ${pkg.name}@${version} for this commit`);
+            process.exit(0);
+          }
+          let error;
+          try { error = JSON.parse(existing.stdout).error; } catch {}
+          if (error?.code !== 'E404') throw new Error('Cannot verify registry version availability');
+          const bump = spawnSync('npm', ['version', version, '--no-git-tag-version', '--allow-same-version'], { stdio: 'inherit' });
+          if (bump.status !== 0) process.exit(1);
+          const publish = spawnSync('npm', ['publish', '--access', 'public', '--provenance'], { stdio: 'inherit' });
+          process.exit(publish.status ?? 1);
+          NODE
 
   deploy:
-    needs: publish
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    needs: [validate, publish]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-
-      - name: Prepare source and private runtime configuration
+      - name: Download this run's validated image
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: service-ai-publisher-candidate-${{ github.run_id }}
+      - name: Check deployment credentials
         env:
-          PORT: ${{ secrets.PORT }}
-          AUTH_BASE_URL: ${{ secrets.AUTH_BASE_URL }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
         run: |
-          set -euo pipefail
-          umask 077
-
           python3 - <<'PY'
           import os
-          from pathlib import Path
-          from urllib.parse import urlsplit, parse_qs
-
-          names = ("PORT", "AUTH_BASE_URL", "MONGODB_URI")
-          for name in (*names, "SSH_HOST_FINGERPRINT"):
-              value = os.environ.get(name, "")
-              if not value or any(c in value for c in ("\r", "\n", "\0")):
-                  raise SystemExit(f"Missing or invalid {name}")
-
-          if os.environ["PORT"] != "3014":
-              raise SystemExit("PORT must be 3014 for this deployment")
-
-          try:
-              uri = urlsplit(os.environ["MONGODB_URI"])
-              valid = (
-                  uri.scheme == "mongodb"
-                  and uri.hostname == "10.116.0.2"
-                  and uri.port == 27017
-                  and uri.username == "workshop"
-                  and bool(uri.password)
-                  and uri.path == "/workshop-viewer"
-                  and parse_qs(uri.query).get("authSource") == ["workshop-viewer"]
-              )
-          except ValueError:
-              valid = False
-
-          if not valid:
-              raise SystemExit("MONGODB_URI does not match the restored private database")
-
-          path = Path(".env.next")
-          path.write_text(
-              "".join(f"{name}={os.environ[name]}\n" for name in names)
-          )
-          path.chmod(0o600)
+          for name in ('DROPLET_IP', 'SSH_PRIVATE_KEY', 'SSH_HOST_FINGERPRINT'):
+              if not os.environ.get(name):
+                  raise SystemExit(f'Missing deployment secret: {name}')
           PY
-
-          git archive --format=tar --output=deploy-source.tar HEAD
-
-      - name: Copy source and runtime configuration
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+      - name: Copy validated image and deployment script
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
           version: '1.8.0'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: 'deploy-source.tar,.env.next'
-          target: '/opt/ngx-nestjs-services/service-ai-publisher'
+          source: 'image.tar,image.tar.sha256,image-id.txt,scripts/deploy-production.py'
+          target: '/opt/ngx-nestjs-services/ai-publisher/releases/${{ github.run_id }}-${{ github.run_attempt }}'
           overwrite: true
-
-      - name: Build and recreate service
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+      - name: Promote image and verify publisher; restore previous container on failure
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         with:
           version: '1.8.2'
           host: ${{ secrets.DROPLET_IP }}
@@ -184,67 +158,6 @@ jobs:
           script: |
             set -eu
             umask 077
-            cd /opt/ngx-nestjs-services/service-ai-publisher
-            trap 'rm -f .env.next deploy-source.tar' EXIT
-
-            chmod 600 .env.next
-            tar -xf deploy-source.tar
-            rm -f deploy-source.tar
-            test -f .dockerignore
-
-            docker network inspect ngx-net >/dev/null 2>&1 || {
-              docker network create ngx-net ||
-                docker network inspect ngx-net >/dev/null
-            }
-
-            docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
-            docker network connect ngx-net ngx-auth-service 2>/dev/null || true
-
-            docker build -t service-ai-publisher .
-
-            if docker container inspect service-ai-publisher >/dev/null 2>&1; then
-              previous_image=$(docker inspect --format '{{.Image}}' service-ai-publisher)
-              docker image tag "$previous_image" service-ai-publisher:previous
-            fi
-            if [ -f .env ]; then
-              install -m 600 .env .env.previous
-            fi
-            install -m 600 .env.next .env
-            rm -f .env.next
-
-            if docker container inspect service-ai-publisher >/dev/null 2>&1; then
-              docker stop service-ai-publisher
-              docker rm service-ai-publisher
-            fi
-
-            docker run -d \
-              --name service-ai-publisher \
-              --env-file .env \
-              --network ngx-net \
-              --restart unless-stopped \
-              -p 3014:3014 \
-              service-ai-publisher
-
-            attempt=0
-            until docker exec service-ai-publisher node -e '
-              const net = require("node:net");
-              const socket = net.connect(3014, "127.0.0.1");
-              socket.setTimeout(2000);
-              socket.on("connect", () => {
-                socket.end();
-                process.exit(0);
-              });
-              socket.on("error", () => process.exit(1));
-              socket.on("timeout", () => process.exit(1));
-            ' >/dev/null 2>&1; do
-              attempt=$((attempt + 1))
-              if [ "$attempt" -ge 30 ]; then
-                echo "Service failed its startup check" >&2
-                exit 1
-              fi
-              sleep 2
-            done
-
-      - name: Remove temporary deployment files
-        if: always()
-        run: rm -f .env.next deploy-source.tar
+            cd '/opt/ngx-nestjs-services/ai-publisher/releases/${{ github.run_id }}-${{ github.run_attempt }}'
+            chmod 700 .
+            flock -n /var/lock/ngx-ai-publisher-deploy.lock python3 scripts/deploy-production.py '${{ github.sha }}' '${{ github.run_id }}-${{ github.run_attempt }}'

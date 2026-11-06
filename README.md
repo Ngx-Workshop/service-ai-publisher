@@ -1,34 +1,24 @@
 # service-ai-publisher
 
-NestJS microservice scaffolded from the Ngx-Workshop seed-service-nestjs template.
+Owns AI workshop drafting, generated images, preparation/check jobs and publishing
+receipts. Native administrator endpoints: `/publisher/tools` (browser facade) and
+`/mcp/publishing` (stateless MCP). Default port: 3014. All tool requests require
+platform administrator authorization through service-auth. There is no MongoDB.
 
-Use Node.js 22 or newer, matching the seeds.
+Use Node 22.23.3. Run `npm ci`, copy `.env.example` to `.env`, supply trusted owner
+URLs and a private writable journal directory, then `npm run start:dev`. Set
+`OPENAI_API_KEY` privately for paid generation. Validation and publication do not
+require model credentials. Tests use doubles and never call paid providers.
 
-## Development
+`npm run build`, `npm test -- --runInBand`, `npm run test:e2e -- --runInBand` and
+`npm run lint:check` verify the service. Generate/build the independent contract
+package using `npm run contracts:service-ai-publisher:gen` and
+`npm run contracts:service-ai-publisher:build` after installing its tooling with
+`npm --prefix contracts/service-ai-publisher ci`.
 
-```sh
-npm ci
-cp .env.example .env
-# Supply reachable MongoDB and auth settings, then:
-npm run start:dev
-# Build/OpenAPI (generation mode only):
-GENERATE_OPENAPI=true npm run build
-npm --prefix contracts/service-ai-publisher ci
-npm run contracts:service-ai-publisher:gen
-npm run contracts:service-ai-publisher:build
-```
-
-## Integration
-
-Native API: /ai-publisher; browser API: /api/ai-publisher.
-Default port: 3014. Confirm this port is available on your service host.
-Contracts: @tmdjr/service-ai-publisher-contracts; directory: contracts/service-ai-publisher.
-The gateway snippet below strips /api and preserves /ai-publisher. Replace the example host with your actual private service host.
-MongoDB and auth are external prerequisites. Compose requires the external ngx-net network.
-The inherited example CRUD endpoints remain unguarded; only auth-test uses RemoteAuthGuard. Choose access policy and adapt example DTOs/schema/tests before production use.
-
-## Seed adoption
-
-This is a starting scaffold with inherited example code. Read [seed adoption](docs/seed-adoption.md), [development limitations](docs/development.md), and [integration guidance](WORKSHOP.md). Replace example behavior with your product, adapt tests, and regenerate contracts as needed.
-
-Scaffolding saves seed deployment examples in .ngx-workshop/workflows. Run ngx-workshop deploy . to publish and deploy this project. For services, the CLI updates/pushes Nginx and waits for its deployment to succeed before dispatching service deployment. Configure Actions secrets first; see the CLI deployment guide. Contracts publishing and MFE registration remain separate operations.
+Existing callers can continue using the catalog gateway's compatibility endpoints.
+See [migration and cutover](docs/migration.md), [architecture](docs/architecture.md),
+[development](docs/development.md) and [publishing behavior](docs/workshop-publishing.md).
+Main pushes validate, publish contracts through npm OIDC and promote the validated
+image. Initial cutover requires the host configuration and existing receipt volume;
+local implementation does not deploy them.
