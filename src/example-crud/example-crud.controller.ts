@@ -37,6 +37,11 @@ export class AuthTestDto {
 export class ExampleCrudController {
   constructor(private readonly exampleCrudService: ExampleCrudService) {}
 
+  @Get('hello-world')
+  helloWorld() {
+    return { message: 'Hello, world!' };
+  }
+
   @Get('auth-test')
   @UseGuards(RemoteAuthGuard)
   @ApiOkResponse({ type: AuthTestDto })
