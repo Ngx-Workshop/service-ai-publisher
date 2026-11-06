@@ -1,6 +1,6 @@
 # Gateway → AI publisher cutover
 
-Local implementation, 2026-11-06. Production cutover has not been executed.
+Updated 2026-11-06. Initial deployment runtime preparation is implemented; production cutover remains pending.
 
 ## Ownership and compatibility
 
@@ -27,10 +27,15 @@ its contracts. No checkout dependency exists at runtime or in CI.
 1. Pause new administrator publishing/generation, drain active operations, save any
    needed preparation drafts and back up the private ngx-publisher-runs volume.
    Preparation IDs are memory-only and cannot survive the move; recheck drafts after restart.
-2. Prepare root-owned mode 0600 `/etc/ngx-workshop/ai-publisher/runtime.env` from
-   `.env.example`. Set NODE_ENV=production, PORT=3014, PUBLISHING_ENABLED=true,
-   actual owner/auth URLs, journal `/var/lib/ngx-publishing`, approved model settings
-   and the existing private OPENAI_API_KEY. Keep the file outside CI/source.
+2. Initialize the private publisher runtime using `python3 scripts/deploy-production.py
+   --prepare-runtime` on the application host as root. The deployment script also
+   performs this on first deployment if the file is missing. It copies only publisher
+   owner/auth/model settings from the existing private gateway runtime, sets port 3014,
+   NODE_ENV=production, PUBLISHING_ENABLED=true and the existing journal path. It
+   creates `/etc/ngx-workshop/ai-publisher/runtime.env` at mode 0600 and never overwrites
+   an existing file or changes the source. Missing/insecure/incomplete source settings
+   fail explicitly, without exposing values. Alternatively provision the file from
+   `.env.example` with actual settings. Keep both files outside CI/source.
 3. Set gateway AI_PUBLISHER_BASE_URL=http://service-ai-publisher:3014 and retain
    PUBLISHING_ENABLED=true. Remove its model API key, model catalog, assessment/uploader
    URLs and journal settings. Preserve all catalog OAuth/ingress settings.
@@ -52,3 +57,21 @@ request ID to retry an uncertain mutation. Existing Nginx browser/agent routes c
 remain on the gateway; no browser endpoint change is required. Configure npm OIDC
 for the new package before its first release. Deployment workflow uses the validated
 image and host-owned environment, replacing the seed database-based deployment.
+
+## First deployment failure — run 42302561829
+
+Validation, image build, contract publication and artifact transfer succeeded. The
+promotion script failed before Docker promotion because the new publisher runtime
+file did not exist; FileNotFoundError fell through to its generic error handler.
+Read-only host checks confirmed the missing file and all required publisher settings
+in the private legacy gateway runtime. The old gateway still mounts ngx-publisher-runs;
+the existing publisher container is the seed image without a journal mount.
+
+The runtime preparation helper now creates the missing file using an exclusive create
+and allowlisted settings, validates regular-file ownership/mode, preserves existing
+files, and gives actionable missing-setting/configuration errors. Docker network/volume
+preflight failures also have safe messages. The single-writer guard remains mandatory:
+deploy the gateway extraction before publisher promotion. Retrying publisher while the
+legacy gateway remains active will intentionally stop at that guard. Twelve local
+Python regression tests pass, including initialization, secret filtering, missing and
+insecure configuration, symlinks, existing-file preservation and deployment rollback.

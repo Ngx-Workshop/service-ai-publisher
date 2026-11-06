@@ -20,6 +20,7 @@ as live model, runner, storage, auth or production acceptance.
 Docker runs as uid 1000 with private journal storage. Local Compose binds 3014 only
 to loopback and uses external ngx-net and ngx-publisher-runs. Production has no
 host-port publication and uses the private gateway connection. The deployment script
-requires a root-owned 0600 `/etc/ngx-workshop/ai-publisher/runtime.env`, checks image
+initializes a missing root-owned 0600 `/etc/ngx-workshop/ai-publisher/runtime.env`
+from allowlisted private gateway settings without overwriting existing files, checks image
 identity, rejects other active journal writers and restores the previous container
 on failure. See [cutover](migration.md) before initial deployment.

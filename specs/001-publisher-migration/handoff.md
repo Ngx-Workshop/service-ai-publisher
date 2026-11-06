@@ -52,3 +52,20 @@ its historical mcpCatalogContract.publishing export. Npm OIDC for the new packag
 host environment provisioning, live administrator/receipt checks and real runner/model
 acceptance remain operational rollout work. No commit, push, publication or deployment
 was performed by this migration task.
+
+## Deployment failure follow-up — 2026-11-06
+
+Run 42302561829 completed validation/publication, then failed promotion because
+/etc/ngx-workshop/ai-publisher/runtime.env was missing. Read-only SSH confirmed this
+and found all required publisher settings in the existing root-private gateway file.
+The host still runs gateway revision 4d00fe26a30ca4188e197ed893e6c1125565152a
+with ngx-publisher-runs mounted; the publisher container remains the seed image.
+
+Added first-deployment runtime initialization with exclusive create, allowlisted
+settings, mode/ownership validation and no existing-file changes. Missing settings and
+Docker prerequisites now report safe actionable errors. `--prepare-runtime` can run
+without artifacts or promotion; that tested helper was used over verified SSH to
+stage the new private file. No service restart, image promotion or workflow rerun
+was performed. Twelve deployment/runtime tests pass. The gateway migration remains
+uncommitted in its local checkout and must reach deployment before publisher
+promotion can pass the receipt single-writer guard. See docs/migration.md.

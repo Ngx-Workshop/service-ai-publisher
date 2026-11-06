@@ -1,10 +1,10 @@
 """Failure-path tests without Docker or production access."""
 import hashlib
 import importlib.util
-import json
 from pathlib import Path
 import subprocess
 import tempfile
+import stat
 import unittest
 from unittest.mock import patch
 
@@ -26,8 +26,6 @@ class DeploymentTests(unittest.TestCase):
         self.env = self.root / 'runtime.env'
         self.env.write_text('PORT=3014\nNODE_ENV=production\nPUBLISHING_ENABLED=true\nPUBLISHING_JOURNAL_DIRECTORY=/var/lib/ngx-publishing\nOPENAI_API_KEY=private-test-value\n')
         self.env.chmod(0o600)
-        self.secret = self.root / 'introspection'
-        self.secret.touch()
         self.calls = []
         self.ready = True
         self.fail_run = False
@@ -48,13 +46,15 @@ class DeploymentTests(unittest.TestCase):
         return ''
 
     def deploy(self):
-        # Only root ownership is mocked; real temporary permission checks still run.
-        info = self.env.stat()
+        actual_lstat = Path.lstat
+        def root_runtime(path):
+            info = actual_lstat(path)
+            if path == self.env:
+                return type('Stat', (), {'st_uid': 0, 'st_mode': info.st_mode})()
+            return info
         with patch.object(deployment, 'ENV', self.env), \
              patch.object(deployment, 'docker', self.docker), patch.object(deployment.time, 'sleep'), \
-             patch.object(Path, 'stat', autospec=True) as stat:
-            # ENV.stat and SECRET.is_file need a usable stat result.
-            stat.return_value = type('Stat', (), {'st_uid': 0, 'st_mode': info.st_mode})()
+             patch.object(Path, 'lstat', root_runtime):
             deployment.deploy(self.root, REVISION, '123-1')
 
     def test_success_preserves_runtime_and_volume(self):
@@ -102,6 +102,70 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'previous container restored'):
             self.deploy()
         self.assertEqual(self.calls[-1], ('start', deployment.NAME))
+
+
+class RuntimePreparationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.target = self.root / 'publisher' / 'runtime.env'
+        self.legacy = self.root / 'legacy.env'
+        self.legacy.write_text(''.join(f'{name}=http://owner.invalid\n' for name in deployment.OWNER_SETTINGS)
+                               + 'OPENAI_API_KEY=private-provider-value\nAUTH_INTROSPECTION_CLIENT_SECRET=must-not-copy\n'
+                               + 'MONGODB_URI=must-not-copy\nPORT=3011\nNODE_ENV=development\n')
+        self.legacy.chmod(0o600)
+
+    def prepare(self):
+        actual_lstat = Path.lstat
+        def root_runtime(path):
+            info = actual_lstat(path)
+            return type('Stat', (), {'st_uid': 0, 'st_mode': info.st_mode})()
+        with patch.object(deployment, 'ENV', self.target), patch.object(deployment, 'LEGACY_ENV', self.legacy), \
+             patch.object(Path, 'lstat', root_runtime):
+            return deployment.ensure_runtime()
+
+    def test_copies_only_publisher_settings_and_preserves_legacy(self):
+        before = self.legacy.read_bytes()
+        self.assertTrue(self.prepare())
+        settings = self.target.read_text()
+        self.assertIn('OPENAI_API_KEY=private-provider-value\n', settings)
+        self.assertIn('PORT=3014\n', settings)
+        self.assertIn('NODE_ENV=production\n', settings)
+        self.assertNotIn('must-not-copy', settings)
+        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o600)
+        self.assertEqual(self.legacy.read_bytes(), before)
+
+    def test_existing_private_runtime_is_never_overwritten(self):
+        self.prepare()
+        self.target.write_text('operator=preserved\n')
+        self.assertFalse(self.prepare())
+        self.assertEqual(self.target.read_text(), 'operator=preserved\n')
+
+    def test_missing_legacy_reports_path_without_creating_runtime(self):
+        self.legacy.unlink()
+        with self.assertRaisesRegex(RuntimeError, 'Missing private runtime configuration'):
+            self.prepare()
+        self.assertFalse(self.target.exists())
+
+    def test_insecure_source_is_rejected(self):
+        self.legacy.chmod(0o644)
+        with self.assertRaisesRegex(RuntimeError, 'root-owned private regular file'):
+            self.prepare()
+        self.assertFalse(self.target.exists())
+
+    def test_incomplete_source_is_rejected_without_exposing_values(self):
+        self.legacy.write_text('OPENAI_API_KEY=private-provider-value\n')
+        with self.assertRaisesRegex(RuntimeError, 'missing required publisher settings') as error:
+            self.prepare()
+        self.assertNotIn('private-provider-value', str(error.exception))
+        self.assertFalse(self.target.exists())
+
+    def test_symlink_target_is_rejected(self):
+        self.target.parent.mkdir()
+        self.target.symlink_to(self.legacy)
+        with self.assertRaisesRegex(RuntimeError, 'private regular file'):
+            self.prepare()
 
 
 if __name__ == '__main__':
