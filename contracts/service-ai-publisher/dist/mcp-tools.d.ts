@@ -5,6 +5,307 @@ export declare const mcpPublisherContract: {
         readonly endpoint: "/mcp/publishing";
         readonly authentication: "platform administrator bearer";
         readonly tools: readonly [{
+            readonly name: "list_workshop_drafts";
+            readonly description: "List your saved workshop drafts, fifty at a time. Pass the last draftId as before for the next page.";
+            readonly annotations: {
+                readonly readOnlyHint: true;
+                readonly destructiveHint: false;
+                readonly idempotentHint: true;
+                readonly openWorldHint: true;
+            };
+            readonly inputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly before: {
+                        readonly type: "string";
+                        readonly format: "uuid";
+                        readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                    };
+                };
+                readonly additionalProperties: false;
+            };
+            readonly outputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly data: {
+                        readonly type: "array";
+                        readonly items: {
+                            readonly type: "object";
+                            readonly properties: {
+                                readonly draftId: {
+                                    readonly type: "string";
+                                    readonly format: "uuid";
+                                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                                };
+                                readonly version: {
+                                    readonly type: "integer";
+                                    readonly exclusiveMinimum: 0;
+                                    readonly maximum: 9007199254740991;
+                                };
+                                readonly name: {
+                                    readonly type: "string";
+                                    readonly maxLength: 160;
+                                };
+                                readonly status: {
+                                    readonly type: "string";
+                                    readonly enum: readonly ["running", "interrupted", "ready", "needs_attention", "edited", "published"];
+                                };
+                                readonly previousPreparationId: {
+                                    readonly type: "string";
+                                    readonly format: "uuid";
+                                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                                };
+                                readonly publishedRequestId: {
+                                    readonly type: "string";
+                                    readonly format: "uuid";
+                                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                                };
+                                readonly preparationId: {
+                                    readonly type: "string";
+                                    readonly format: "uuid";
+                                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                                };
+                                readonly createdAt: {
+                                    readonly type: "string";
+                                };
+                                readonly updatedAt: {
+                                    readonly type: "string";
+                                };
+                            };
+                            readonly required: readonly ["draftId", "version", "name", "status", "createdAt", "updatedAt"];
+                            readonly additionalProperties: false;
+                        };
+                    };
+                };
+                readonly required: readonly ["data"];
+                readonly additionalProperties: false;
+            };
+        }, {
+            readonly name: "get_workshop_draft";
+            readonly description: "Read your saved workshop source and latest preparation reference.";
+            readonly annotations: {
+                readonly readOnlyHint: true;
+                readonly destructiveHint: false;
+                readonly idempotentHint: true;
+                readonly openWorldHint: true;
+            };
+            readonly inputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly draftId: {
+                        readonly type: "string";
+                        readonly format: "uuid";
+                        readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                    };
+                };
+                readonly required: readonly ["draftId"];
+                readonly additionalProperties: false;
+            };
+            readonly outputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly data: {
+                        readonly type: "object";
+                        readonly properties: {
+                            readonly draftId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly version: {
+                                readonly type: "integer";
+                                readonly exclusiveMinimum: 0;
+                                readonly maximum: 9007199254740991;
+                            };
+                            readonly name: {
+                                readonly type: "string";
+                                readonly maxLength: 160;
+                            };
+                            readonly json: {
+                                readonly type: "string";
+                                readonly maxLength: 6000000;
+                            };
+                            readonly status: {
+                                readonly type: "string";
+                                readonly enum: readonly ["running", "interrupted", "ready", "needs_attention", "edited", "published"];
+                            };
+                            readonly brief: {
+                                readonly type: "object";
+                                readonly properties: {
+                                    readonly brief: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 20000;
+                                    };
+                                    readonly model: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 120;
+                                    };
+                                    readonly sectionId: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 120;
+                                    };
+                                    readonly level: {
+                                        readonly type: "integer";
+                                        readonly minimum: 1;
+                                        readonly maximum: 20;
+                                    };
+                                };
+                                readonly required: readonly ["brief", "sectionId", "level"];
+                                readonly additionalProperties: false;
+                            };
+                            readonly previousPreparationId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly publishedRequestId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly preparationId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly createdAt: {
+                                readonly type: "string";
+                            };
+                            readonly updatedAt: {
+                                readonly type: "string";
+                            };
+                        };
+                        readonly required: readonly ["draftId", "version", "name", "json", "status", "createdAt", "updatedAt"];
+                        readonly additionalProperties: false;
+                    };
+                };
+                readonly required: readonly ["data"];
+                readonly additionalProperties: false;
+            };
+        }, {
+            readonly name: "save_workshop_draft";
+            readonly description: "Save edited workshop source with optimistic revision protection. Edits require new checks.";
+            readonly annotations: {
+                readonly readOnlyHint: false;
+                readonly destructiveHint: false;
+                readonly idempotentHint: false;
+                readonly openWorldHint: true;
+            };
+            readonly inputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly draftId: {
+                        readonly type: "string";
+                        readonly format: "uuid";
+                        readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                    };
+                    readonly version: {
+                        readonly type: "integer";
+                        readonly exclusiveMinimum: 0;
+                        readonly maximum: 9007199254740991;
+                    };
+                    readonly json: {
+                        readonly type: "string";
+                        readonly maxLength: 6000000;
+                    };
+                };
+                readonly required: readonly ["draftId", "version", "json"];
+                readonly additionalProperties: false;
+            };
+            readonly outputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly data: {
+                        readonly type: "object";
+                        readonly properties: {
+                            readonly draftId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly version: {
+                                readonly type: "integer";
+                                readonly exclusiveMinimum: 0;
+                                readonly maximum: 9007199254740991;
+                            };
+                            readonly name: {
+                                readonly type: "string";
+                                readonly maxLength: 160;
+                            };
+                            readonly json: {
+                                readonly type: "string";
+                                readonly maxLength: 6000000;
+                            };
+                            readonly status: {
+                                readonly type: "string";
+                                readonly enum: readonly ["running", "interrupted", "ready", "needs_attention", "edited", "published"];
+                            };
+                            readonly brief: {
+                                readonly type: "object";
+                                readonly properties: {
+                                    readonly brief: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 20000;
+                                    };
+                                    readonly model: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 120;
+                                    };
+                                    readonly sectionId: {
+                                        readonly type: "string";
+                                        readonly minLength: 1;
+                                        readonly maxLength: 120;
+                                    };
+                                    readonly level: {
+                                        readonly type: "integer";
+                                        readonly minimum: 1;
+                                        readonly maximum: 20;
+                                    };
+                                };
+                                readonly required: readonly ["brief", "sectionId", "level"];
+                                readonly additionalProperties: false;
+                            };
+                            readonly previousPreparationId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly publishedRequestId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly preparationId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly createdAt: {
+                                readonly type: "string";
+                            };
+                            readonly updatedAt: {
+                                readonly type: "string";
+                            };
+                        };
+                        readonly required: readonly ["draftId", "version", "name", "json", "status", "createdAt", "updatedAt"];
+                        readonly additionalProperties: false;
+                    };
+                };
+                readonly required: readonly ["data"];
+                readonly additionalProperties: false;
+            };
+        }, {
             readonly name: "get_workshop_repair_options";
             readonly description: "List current failed content checks eligible for one explicit AI revision. This read does not call a model; service and provider outages are excluded.";
             readonly annotations: {
@@ -93,6 +394,16 @@ export declare const mcpPublisherContract: {
                             readonly format: "uuid";
                             readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
                         };
+                        readonly draftId: {
+                            readonly type: "string";
+                            readonly format: "uuid";
+                            readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly draftVersion: {
+                            readonly type: "integer";
+                            readonly exclusiveMinimum: 0;
+                            readonly maximum: 9007199254740991;
+                        };
                         readonly input: {
                             readonly type: "object";
                             readonly properties: {
@@ -135,6 +446,16 @@ export declare const mcpPublisherContract: {
                             readonly format: "uuid";
                             readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
                         };
+                        readonly draftId: {
+                            readonly type: "string";
+                            readonly format: "uuid";
+                            readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly draftVersion: {
+                            readonly type: "integer";
+                            readonly exclusiveMinimum: 0;
+                            readonly maximum: 9007199254740991;
+                        };
                         readonly draft: {};
                     };
                     readonly required: readonly ["operation", "draft"];
@@ -150,6 +471,16 @@ export declare const mcpPublisherContract: {
                             readonly type: "string";
                             readonly format: "uuid";
                             readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly draftId: {
+                            readonly type: "string";
+                            readonly format: "uuid";
+                            readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly draftVersion: {
+                            readonly type: "integer";
+                            readonly exclusiveMinimum: 0;
+                            readonly maximum: 9007199254740991;
                         };
                         readonly sourcePreparationId: {
                             readonly type: "string";
@@ -682,7 +1013,7 @@ export declare const mcpPublisherContract: {
             };
         }, {
             readonly name: "get_workshop_preparation";
-            readonly description: "Read private preparation progress and checked draft; jobs expire one hour after completion or on restart.";
+            readonly description: "Read private preparation progress and checked draft; reports persist across restarts; interrupted work requires fresh checks.";
             readonly annotations: {
                 readonly readOnlyHint: true;
                 readonly destructiveHint: false;
@@ -3440,6 +3771,131 @@ export declare const mcpPublisherContract: {
     };
 };
 export declare const publisherSchemas: {
+    readonly SavedWorkshopDraft: {
+        readonly type: "object";
+        readonly properties: {
+            readonly draftId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly version: {
+                readonly type: "integer";
+                readonly minimum: 0;
+                readonly exclusiveMinimum: true;
+                readonly maximum: 9007199254740991;
+            };
+            readonly name: {
+                readonly type: "string";
+                readonly maxLength: 160;
+            };
+            readonly json: {
+                readonly type: "string";
+                readonly maxLength: 6000000;
+            };
+            readonly status: {
+                readonly type: "string";
+                readonly enum: readonly ["running", "interrupted", "ready", "needs_attention", "edited", "published"];
+            };
+            readonly brief: {
+                readonly type: "object";
+                readonly properties: {
+                    readonly brief: {
+                        readonly type: "string";
+                        readonly minLength: 1;
+                        readonly maxLength: 20000;
+                    };
+                    readonly model: {
+                        readonly type: "string";
+                        readonly minLength: 1;
+                        readonly maxLength: 120;
+                    };
+                    readonly sectionId: {
+                        readonly type: "string";
+                        readonly minLength: 1;
+                        readonly maxLength: 120;
+                    };
+                    readonly level: {
+                        readonly type: "integer";
+                        readonly minimum: 1;
+                        readonly maximum: 20;
+                    };
+                };
+                readonly required: readonly ["brief", "sectionId", "level"];
+                readonly additionalProperties: false;
+            };
+            readonly previousPreparationId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly publishedRequestId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly preparationId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly createdAt: {
+                readonly type: "string";
+            };
+            readonly updatedAt: {
+                readonly type: "string";
+            };
+        };
+        readonly required: readonly ["draftId", "version", "name", "json", "status", "createdAt", "updatedAt"];
+        readonly additionalProperties: false;
+    };
+    readonly WorkshopDraftSummary: {
+        readonly type: "object";
+        readonly properties: {
+            readonly draftId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly version: {
+                readonly type: "integer";
+                readonly minimum: 0;
+                readonly exclusiveMinimum: true;
+                readonly maximum: 9007199254740991;
+            };
+            readonly name: {
+                readonly type: "string";
+                readonly maxLength: 160;
+            };
+            readonly status: {
+                readonly type: "string";
+                readonly enum: readonly ["running", "interrupted", "ready", "needs_attention", "edited", "published"];
+            };
+            readonly previousPreparationId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly publishedRequestId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly preparationId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly createdAt: {
+                readonly type: "string";
+            };
+            readonly updatedAt: {
+                readonly type: "string";
+            };
+        };
+        readonly required: readonly ["draftId", "version", "name", "status", "createdAt", "updatedAt"];
+        readonly additionalProperties: false;
+    };
     readonly PreparationReport: {
         readonly type: "object";
         readonly properties: {
@@ -4024,6 +4480,17 @@ export declare const publisherSchemas: {
                     readonly format: "uuid";
                     readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
                 };
+                readonly draftId: {
+                    readonly type: "string";
+                    readonly format: "uuid";
+                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly draftVersion: {
+                    readonly type: "integer";
+                    readonly minimum: 0;
+                    readonly exclusiveMinimum: true;
+                    readonly maximum: 9007199254740991;
+                };
                 readonly input: {
                     readonly type: "object";
                     readonly properties: {
@@ -4066,6 +4533,17 @@ export declare const publisherSchemas: {
                     readonly format: "uuid";
                     readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
                 };
+                readonly draftId: {
+                    readonly type: "string";
+                    readonly format: "uuid";
+                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly draftVersion: {
+                    readonly type: "integer";
+                    readonly minimum: 0;
+                    readonly exclusiveMinimum: true;
+                    readonly maximum: 9007199254740991;
+                };
                 readonly draft: {};
             };
             readonly required: readonly ["operation", "draft"];
@@ -4081,6 +4559,17 @@ export declare const publisherSchemas: {
                     readonly type: "string";
                     readonly format: "uuid";
                     readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly draftId: {
+                    readonly type: "string";
+                    readonly format: "uuid";
+                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly draftVersion: {
+                    readonly type: "integer";
+                    readonly minimum: 0;
+                    readonly exclusiveMinimum: true;
+                    readonly maximum: 9007199254740991;
                 };
                 readonly sourcePreparationId: {
                     readonly type: "string";

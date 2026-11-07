@@ -1,3 +1,4 @@
+import { DraftRepository } from './publishing/draft.repository';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
@@ -13,6 +14,7 @@ import { PUBLISHER_CONFIG, loadPublisherConfig } from './publisher.config';
   imports: [ConfigModule.forRoot({ isGlobal: true }), HttpModule],
   controllers: [PublishingController],
   providers: [
+    DraftRepository,
     AuthClientService,
     PublishingOwnerClient,
     PublishingRunService,

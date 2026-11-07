@@ -1,5 +1,6 @@
+import { DraftRepository, StoredPreparation } from './draft.repository';
 import { labPreflightError } from './lab-preflight-error';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { DraftAgentService } from './draft-agent.service';
@@ -47,20 +48,107 @@ type Job = {
   subject: string;
   report: PreparationReport;
   finished?: number;
+  draftId?: string;
 };
 @Injectable()
 export class WorkshopPreparationService {
+  private starts: Promise<unknown> = Promise.resolve();
   private readonly jobs = new Map<string, Job>();
   private readonly unavailableChecks = new WeakSet<PreparationActivity>();
   constructor(
     private readonly agent: DraftAgentService,
-    private readonly owner: PublishingOwnerClient
+    private readonly owner: PublishingOwnerClient,
+    @Optional() private readonly drafts?: DraftRepository
   ) {}
 
+  async stored(
+    id: string,
+    identity: PublisherIdentity
+  ): Promise<PreparationReport> {
+    await this.drafts?.flush(id);
+    if (!this.jobs.has(id) && this.drafts) {
+      const stored = await this.drafts.loadJob(id, identity.subject);
+      if (stored) {
+        this.jobs.set(id, stored);
+        for (const row of stored.report.activities)
+          if (stored.unavailable.includes(row.id))
+            this.unavailableChecks.add(row);
+      }
+    }
+    return this.get(id, identity);
+  }
+  startDurable(
+    value: unknown,
+    identity: PublisherIdentity
+  ): Promise<PreparationReport> {
+    const result = this.starts.then(() => this.beginDurable(value, identity));
+    this.starts = result.catch(() => undefined);
+    return result;
+  }
+  private async beginDurable(value: unknown, identity: PublisherIdentity) {
+    const input = startPreparationSchema.parse(value);
+    if (!this.drafts) return this.start(input, identity);
+    const id = input.preparationId ?? randomUUID();
+    const existing = await this.drafts.loadJob(id);
+    if (existing && existing.subject !== identity.subject)
+      throw new GenerationError('PREPARATION_UNAVAILABLE');
+    if (existing) {
+      await this.stored(id, identity);
+      return this.start({ ...input, preparationId: id }, identity);
+    }
+    if (input.operation === 'repair') {
+      await this.stored(input.sourcePreparationId, identity);
+      await this.drafts.assertCurrent(
+        input.sourcePreparationId,
+        identity.subject
+      );
+    }
+    // Validate repair, ownership and capacity before changing saved state.
+    if (input.operation === 'repair')
+      this.repairContext(
+        input.sourcePreparationId,
+        input.expectedDraftHash,
+        input.activityId,
+        identity
+      );
+    if (
+      [...this.jobs.values()].some(
+        (job) => !job.finished && job.subject === identity.subject
+      ) ||
+      [...this.jobs.values()].filter((job) => !job.finished).length >= 2
+    )
+      throw new GenerationError('PREPARATION_BUSY');
+    await this.drafts.begin(
+      input.draftId ?? id,
+      identity.subject,
+      id,
+      input.draftVersion,
+      input.operation === 'check'
+        ? JSON.stringify(input.draft, null, 2)
+        : undefined,
+      input.operation === 'generate' ? input.input : undefined,
+      input.operation === 'repair' ? input.sourcePreparationId : undefined
+    );
+    const report = this.start({ ...input, preparationId: id }, identity);
+    await this.checkpoint(this.jobs.get(id)!);
+    return report;
+  }
+  private checkpoint(job: Job) {
+    if (!this.drafts) return Promise.resolve();
+    const stored: StoredPreparation = {
+      ...structuredClone(job),
+      draftId: job.draftId!,
+      preparationId: job.report.preparationId,
+      unavailable: job.report.activities
+        .filter((row) => this.unavailableChecks.has(row))
+        .map((row) => row.id),
+    };
+    return this.drafts.checkpoint(stored);
+  }
   start(value: unknown, identity: PublisherIdentity): PreparationReport {
     const input = startPreparationSchema.parse(value);
     for (const [id, job] of this.jobs) {
-      if (job.finished && Date.now() - job.finished > 3600000)
+      if (!this.drafts && job.finished && Date.now() - job.finished > 3600000)
         this.jobs.delete(id);
     }
     const preparationId = input.preparationId ?? randomUUID();
@@ -104,16 +192,25 @@ export class WorkshopPreparationService {
       activities: [],
       repairCount: 0,
     };
-    const job = { inputHash, subject: identity.subject, report };
+    const job: Job = {
+      inputHash,
+      subject: identity.subject,
+      report,
+      draftId: input.draftId ?? preparationId,
+    };
     this.jobs.set(report.preparationId, job);
     // Detached work has a terminal catch; no owner resource writes or publication.
-    void this.prepare(job, input, identity, repair).catch(() => {
-      report.status = 'failed';
-      report.ready = false;
-      report.message =
-        'Preparation stopped. Start fresh checks before publication.';
-      this.finish(job);
-    });
+    void this.prepare(job, input, identity, repair)
+      .catch(async () => {
+        report.status = 'failed';
+        report.ready = false;
+        report.message =
+          'Preparation stopped. Start fresh checks before publication.';
+        await this.finish(job);
+      })
+      .catch(() => {
+        /* Storage failure leaves an interrupted, non-ready saved job. */
+      });
     return structuredClone(report);
   }
 
@@ -122,7 +219,7 @@ export class WorkshopPreparationService {
     if (
       !job ||
       job.subject !== identity.subject ||
-      (job.finished && Date.now() - job.finished > 3600000)
+      (!this.drafts && job.finished && Date.now() - job.finished > 3600000)
     )
       throw new GenerationError('PREPARATION_UNAVAILABLE');
     return structuredClone(job.report);
@@ -229,6 +326,11 @@ export class WorkshopPreparationService {
             : 'Check unavailable or rejected. Correct the content or check the owning service, then run checks again.';
         report.updatedAt = row.finishedAt;
         return row;
+      })
+      .then(async (result) => {
+        const job = this.jobs.get(report.preparationId);
+        if (job) await this.checkpoint(job);
+        return result;
       });
   }
 
@@ -239,6 +341,7 @@ export class WorkshopPreparationService {
     repairContext?: RepairContext
   ) {
     const report = job.report;
+    if (this.drafts) await this.checkpoint(job);
     let raw: unknown = input.operation === 'check' ? input.draft : undefined;
     if (input.operation === 'repair') {
       const context = repairContext!;
@@ -293,7 +396,7 @@ export class WorkshopPreparationService {
       if (repaired.status === 'failed') {
         report.status = 'failed';
         report.message = repaired.detail;
-        this.finish(job);
+        await this.finish(job);
         return;
       }
     } else if (input.operation === 'generate') {
@@ -332,7 +435,7 @@ export class WorkshopPreparationService {
       if (generate.status === 'failed') {
         report.status = 'failed';
         report.message = generate.detail;
-        this.finish(job);
+        await this.finish(job);
         return;
       }
     } else {
@@ -548,11 +651,12 @@ export class WorkshopPreparationService {
     report.message = report.ready
       ? 'Automated checks passed. Review the materials before approving publication.'
       : 'Resolve failed checks and run preparation again before publishing.';
-    this.finish(job);
+    await this.finish(job);
   }
 
-  private finish(job: Job) {
+  private async finish(job: Job) {
     job.finished = Date.now();
     job.report.updatedAt = new Date().toISOString();
+    await this.checkpoint(job);
   }
 }

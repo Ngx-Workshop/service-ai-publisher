@@ -1,6 +1,6 @@
 {
   "name": "@tmdjr/service-ai-publisher-contracts",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI workshop publishing tool models and runtime schemas",
   "license": "MIT",
   "private": false,

@@ -452,16 +452,22 @@ export const startPreparationSchema = z.discriminatedUnion('operation', [
   z.strictObject({
     operation: z.literal('generate'),
     preparationId: z.string().uuid().optional(),
+    draftId: z.string().uuid().optional(),
+    draftVersion: z.number().int().positive().optional(),
     input: generateDraftInputSchema,
   }),
   z.strictObject({
     operation: z.literal('check'),
     preparationId: z.string().uuid().optional(),
+    draftId: z.string().uuid().optional(),
+    draftVersion: z.number().int().positive().optional(),
     draft: z.unknown(),
   }),
   z.strictObject({
     operation: z.literal('repair'),
     preparationId: z.string().uuid().optional(),
+    draftId: z.string().uuid().optional(),
+    draftVersion: z.number().int().positive().optional(),
     sourcePreparationId: z.string().uuid(),
     expectedDraftHash: z.string().regex(/^[a-f0-9]{64}$/),
     activityId: z.string().min(1).max(200),
@@ -470,7 +476,54 @@ export const startPreparationSchema = z.discriminatedUnion('operation', [
 ]);
 export type PreparationReport = z.infer<typeof preparationReportSchema>;
 export type PreparationActivity = z.infer<typeof preparationActivitySchema>;
+export const savedWorkshopDraftSchema = z.strictObject({
+  draftId: z.string().uuid(),
+  version: z.number().int().positive(),
+  name: z.string().max(160),
+  json: z.string().max(6000000),
+  status: z.enum([
+    'running',
+    'interrupted',
+    'ready',
+    'needs_attention',
+    'edited',
+    'published',
+  ]),
+  brief: generateDraftInputSchema.optional(),
+  previousPreparationId: z.string().uuid().optional(),
+  publishedRequestId: z.string().uuid().optional(),
+  preparationId: z.string().uuid().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type SavedWorkshopDraft = z.infer<typeof savedWorkshopDraftSchema>;
+export const draftSummarySchema = savedWorkshopDraftSchema.omit({
+  json: true,
+  brief: true,
+});
 export const publishingDefinitions = {
+  list_workshop_drafts: definition(
+    'List your saved workshop drafts, fifty at a time. Pass the last draftId as before for the next page.',
+    z.strictObject({ before: z.string().uuid().optional() }),
+    read,
+    z.strictObject({ data: z.array(draftSummarySchema) })
+  ),
+  get_workshop_draft: definition(
+    'Read your saved workshop source and latest preparation reference.',
+    z.strictObject({ draftId: z.string().uuid() }),
+    read,
+    z.strictObject({ data: savedWorkshopDraftSchema })
+  ),
+  save_workshop_draft: definition(
+    'Save edited workshop source with optimistic revision protection. Edits require new checks.',
+    z.strictObject({
+      draftId: z.string().uuid(),
+      version: z.number().int().positive(),
+      json: z.string().max(6000000),
+    }),
+    { ...write, destructiveHint: false },
+    z.strictObject({ data: savedWorkshopDraftSchema })
+  ),
   get_workshop_repair_options: definition(
     'List current failed content checks eligible for one explicit AI revision. This read does not call a model; service and provider outages are excluded.',
     z.strictObject({ preparationId: z.string().uuid() }),
@@ -484,7 +537,7 @@ export const publishingDefinitions = {
     z.strictObject({ data: preparationReportSchema })
   ),
   get_workshop_preparation: definition(
-    'Read private preparation progress and checked draft; jobs expire one hour after completion or on restart.',
+    'Read private preparation progress and checked draft; reports persist across restarts; interrupted work requires fresh checks.',
     z.strictObject({ preparationId: z.string().uuid() }),
     read,
     z.strictObject({ data: preparationReportSchema })
@@ -551,6 +604,8 @@ export const publishingReceiptSchema = z.strictObject({
   preparation: preparationReportSchema.omit({ draft: true }).optional(),
 });
 export const publishingContractSchemas = {
+  SavedWorkshopDraft: savedWorkshopDraftSchema,
+  WorkshopDraftSummary: draftSummarySchema,
   PreparationReport: preparationReportSchema,
   PreparationRepairOptions: preparationRepairOptionsSchema,
   PreparationActivity: preparationActivitySchema,

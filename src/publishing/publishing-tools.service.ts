@@ -1,5 +1,6 @@
+import { DraftRepository } from './draft.repository';
 import { WorkshopPreparationService } from './workshop-preparation.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { McpServer, CallToolResult } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { GenerationError } from './generation-error';
@@ -18,7 +19,8 @@ export class PublishingToolsService {
     private readonly owner: PublishingOwnerClient,
     private readonly agent: DraftAgentService,
     private readonly runs: PublishingRunService,
-    private readonly preparations?: WorkshopPreparationService
+    private readonly preparations?: WorkshopPreparationService,
+    @Optional() private readonly drafts?: DraftRepository
   ) {}
   async invoke(
     name: string,
@@ -33,8 +35,38 @@ export class PublishingToolsService {
       const value = definition.inputSchema.parse(input);
       let data: unknown;
       switch (name) {
+        case 'list_workshop_drafts':
+          data = await this.drafts!.list(
+            identity.subject,
+            (value as { before?: string }).before
+          );
+          break;
+        case 'get_workshop_draft':
+          data = await this.drafts!.get(
+            (value as { draftId: string }).draftId,
+            identity.subject
+          );
+          break;
+        case 'save_workshop_draft': {
+          const save = value as {
+            draftId: string;
+            version: number;
+            json: string;
+          };
+          data = await this.drafts!.save(
+            save.draftId,
+            identity.subject,
+            save.version,
+            save.json
+          );
+          break;
+        }
         case 'get_workshop_repair_options':
           if (!this.preparations) throw new Error('Preparation is unavailable');
+          await this.preparations.stored(
+            (value as { preparationId: string }).preparationId,
+            identity
+          );
           data = this.preparations.repairOptions(
             (value as { preparationId: string }).preparationId,
             identity
@@ -42,11 +74,11 @@ export class PublishingToolsService {
           break;
         case 'start_workshop_preparation':
           if (!this.preparations) throw new Error('Preparation is unavailable');
-          data = this.preparations.start(value, identity);
+          data = await this.preparations.startDurable(value, identity);
           break;
         case 'get_workshop_preparation':
           if (!this.preparations) throw new Error('Preparation is unavailable');
-          data = this.preparations.get(
+          data = await this.preparations.stored(
             (value as { preparationId: string }).preparationId,
             identity
           );
@@ -80,6 +112,11 @@ export class PublishingToolsService {
           if (publish.preparationId && !existing) {
             if (!this.preparations)
               throw new Error('Preparation is unavailable');
+            await this.drafts?.assertCurrent(
+              publish.preparationId,
+              identity.subject
+            );
+            await this.preparations.stored(publish.preparationId, identity);
             this.preparations.assertReady(
               publish.preparationId,
               publish.draft,
@@ -92,7 +129,14 @@ export class PublishingToolsService {
               : undefined;
           const evidence = checked ? { ...checked } : undefined;
           if (evidence) delete evidence.draft;
-          data = await this.runs.publish(value, identity, evidence);
+          const receipt = await this.runs.publish(value, identity, evidence);
+          if (receipt.status === 'complete' && publish.preparationId)
+            await this.drafts?.published(
+              publish.preparationId,
+              identity.subject,
+              publish.requestId
+            );
+          data = receipt;
           break;
         }
         case 'get_publishing_run':

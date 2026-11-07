@@ -1,6 +1,6 @@
 # Constitution — NestJS service seed
 
-Version: 1.1.0 · Adopted: 2026-11-06
+Version: 1.2.0 · Updated: 2026-11-07
 
 These are requirements for future work, not claims that all seed code already
 satisfies them. Current gaps live in the development guide.
@@ -8,7 +8,8 @@ satisfies them. Current gaps live in the development guide.
 ## 1. Own one bounded data domain
 
 Ngx-Workshop uses independently maintained services. This service owns workshop generation and publishing orchestration, with private
-receipt files and process-local preparation jobs. It has no MongoDB dependency.
+receipt files and publisher-owned MongoDB drafts/preparation checkpoints. Active
+execution remains process-local; interrupted work is never replayed automatically.
 Do not manipulate another service's documents. Use explicit service contracts for
 cross-domain work. The gateway owns browser-facing aggregation and routing.
 
@@ -52,3 +53,6 @@ original conversation.
 Change these principles intentionally with a rationale and version/date update.
 Review affected context and templates together. Record justified feature-specific
 exceptions in the plan with impact and follow-up.
+
+2026-11-07: User authorized MongoDB persistence for resumable drafts. This amends
+the initial no-Mongo adoption; other services remain accessible only through APIs.

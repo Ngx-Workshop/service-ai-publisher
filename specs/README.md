@@ -18,4 +18,6 @@ the largest folder number is not automatically the active feature.
 
 | Publisher migration | Deployed; authoring acceptance pending | [001](./001-publisher-migration/spec.md) | [Plan](./001-publisher-migration/plan.md) | [Tasks](./001-publisher-migration/tasks.md) | [Handoff](./001-publisher-migration/handoff.md) |
 
-| 002 AI check repair | Implemented; release pending | [Spec](002-ai-check-repair/spec.md) | [Plan](002-ai-check-repair/plan.md) | [Tasks](002-ai-check-repair/tasks.md) | [Handoff](002-ai-check-repair/handoff.md) |
+| 002 AI check repair | Deployed; live CTA verified | [Spec](002-ai-check-repair/spec.md) | [Plan](002-ai-check-repair/plan.md) | [Tasks](002-ai-check-repair/tasks.md) | [Handoff](002-ai-check-repair/handoff.md) |
+
+| 003 Persistent workshop drafts | In progress | [Spec](003-persistent-drafts/spec.md) | [Plan](003-persistent-drafts/plan.md) | [Tasks](003-persistent-drafts/tasks.md) | [Handoff](003-persistent-drafts/handoff.md) |

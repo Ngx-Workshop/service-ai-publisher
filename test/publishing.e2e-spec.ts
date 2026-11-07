@@ -1,3 +1,4 @@
+import { DraftRepository } from '../src/publishing/draft.repository';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AuthClientService } from '@tmdjr/ngx-auth-client';
@@ -60,6 +61,8 @@ describe('Administrator publishing protocol', () => {
       PUBLISHING_JOURNAL_DIRECTORY: directory,
     });
     const module = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(DraftRepository)
+      .useValue(null)
       .overrideProvider(PUBLISHER_CONFIG)
       .useValue(config)
       .overrideProvider(PublishingOwnerClient)
@@ -182,7 +185,7 @@ describe('Administrator publishing protocol', () => {
       .expect(401);
     expect(owner.assessment).not.toHaveBeenCalled();
   });
-  it('discovers thirteen authoring tools with official client and validates editor draft', async () => {
+  it('discovers sixteen authoring tools with official client and validates editor draft', async () => {
     const client = new Client(
       { name: 'publisher-test', version: '1' },
       { versionNegotiation: { mode: { pin: '2026-07-28' } } }
@@ -194,7 +197,7 @@ describe('Administrator publishing protocol', () => {
         })
       );
       const discovery = await client.listTools();
-      expect(discovery.tools).toHaveLength(13);
+      expect(discovery.tools).toHaveLength(16);
       expect(
         discovery.tools.find((t) => t.name === 'publish_workshop')?.annotations
           ?.readOnlyHint

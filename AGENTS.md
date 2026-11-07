@@ -5,7 +5,7 @@ Read [.specify/memory/constitution.md](.specify/memory/constitution.md),
 [workflow](.specify/README.md) and the relevant [feature](specs/README.md).
 
 This service owns workshop generation, images, preparation, publishing orchestration
-and durable private receipts. It has no MongoDB. Domain data belongs to REST owners.
+and durable private receipts. Publisher-owned drafts and preparation evidence persist in MongoDB. Published domain data belongs to REST owners.
 The catalog gateway retains only forwarding compatibility; catalog OAuth belongs there.
 
 - Inspect git status and preserve unrelated changes. Maintain local spec/plan/tasks/handoff.
@@ -18,6 +18,6 @@ The catalog gateway retains only forwarding compatibility; catalog OAuth belongs
 - Verify unit/HTTP/MCP behavior, strict build, lint:check and contract generation/build.
   Tests use doubles and private temporary journals; never run paid generation as a test.
 - Preserve the host-owned environment and ngx-publisher-runs volume. Run one writer.
-  See docs/migration.md before cutover or rollback. Preparation jobs are process-local.
+  See docs/migration.md before cutover or rollback. Drafts and preparation checkpoints are durable; active execution is process-local.
 - Main delivery publishes and deploys validated artifacts; a local build does neither.
 - Consumer changes need a standalone contract handoff and context-doc updates.

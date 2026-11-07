@@ -1,6 +1,10 @@
 import { isAxiosError } from 'axios';
 
 const messages: Record<string, string> = {
+  DRAFT_UNAVAILABLE:
+    'This draft is unavailable or belongs to another administrator.',
+  DRAFT_CONFLICT:
+    'This draft changed in another tab or is still processing. Reopen the saved draft before continuing.',
   LAB_PREFLIGHT_NOT_DEPLOYED:
     'The coding-labs service has no preflight endpoint (HTTP 404). Deploy service-coding-labs with POST /lab-preflight, then validate this draft again. This is a service rollout issue, not a failed lab test.',
   LAB_PREFLIGHT_ACCESS_DENIED:

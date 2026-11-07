@@ -6,6 +6,45 @@ export type paths = Record<string, never>;
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SavedWorkshopDraft: {
+            /** Format: uuid */
+            draftId: string;
+            version: number;
+            name: string;
+            json: string;
+            /** @enum {string} */
+            status: "running" | "interrupted" | "ready" | "needs_attention" | "edited" | "published";
+            brief?: {
+                brief: string;
+                model?: string;
+                sectionId: string;
+                level: number;
+            };
+            /** Format: uuid */
+            previousPreparationId?: string;
+            /** Format: uuid */
+            publishedRequestId?: string;
+            /** Format: uuid */
+            preparationId?: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+        WorkshopDraftSummary: {
+            /** Format: uuid */
+            draftId: string;
+            version: number;
+            name: string;
+            /** @enum {string} */
+            status: "running" | "interrupted" | "ready" | "needs_attention" | "edited" | "published";
+            /** Format: uuid */
+            previousPreparationId?: string;
+            /** Format: uuid */
+            publishedRequestId?: string;
+            /** Format: uuid */
+            preparationId?: string;
+            createdAt: string;
+            updatedAt: string;
+        };
         PreparationReport: {
             /** Format: uuid */
             preparationId: string;
@@ -160,6 +199,9 @@ export interface components {
             operation: "generate";
             /** Format: uuid */
             preparationId?: string;
+            /** Format: uuid */
+            draftId?: string;
+            draftVersion?: number;
             input: {
                 brief: string;
                 model?: string;
@@ -171,12 +213,18 @@ export interface components {
             operation: "check";
             /** Format: uuid */
             preparationId?: string;
+            /** Format: uuid */
+            draftId?: string;
+            draftVersion?: number;
             draft: unknown;
         } | {
             /** @enum {string} */
             operation: "repair";
             /** Format: uuid */
             preparationId?: string;
+            /** Format: uuid */
+            draftId?: string;
+            draftVersion?: number;
             /** Format: uuid */
             sourcePreparationId: string;
             expectedDraftHash: string;

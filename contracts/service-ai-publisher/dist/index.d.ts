@@ -1,4 +1,6 @@
 import type { components } from './service-ai-publisher.types.js';
+export type SavedWorkshopDraft = components['schemas']['SavedWorkshopDraft'];
+export type WorkshopDraftSummary = components['schemas']['WorkshopDraftSummary'];
 export type PreparationReport = components['schemas']['PreparationReport'];
 export type PreparationRepairOptions = components['schemas']['PreparationRepairOptions'];
 export type PreparationActivity = components['schemas']['PreparationActivity'];

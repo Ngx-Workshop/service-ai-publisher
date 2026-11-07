@@ -1,8 +1,8 @@
 # Development and verification
 
 Use Node 22.23.3 and `npm ci`. Configure `.env.example` with reachable trusted owner
-URLs, AUTH_BASE_URL and a writable absolute PUBLISHING_JOURNAL_DIRECTORY. There is
-no database or OpenAPI-generation auth stub. PUBLISHING_ENABLED=true enables guarded
+URLs, AUTH_BASE_URL and a writable absolute PUBLISHING_JOURNAL_DIRECTORY. Configure MONGODB_URI and MONGODB_DATABASE for publisher-owned persistence. There is
+no OpenAPI-generation auth stub. PUBLISHING_ENABLED=true enables guarded
 authoring; false returns 404. Model credentials belong only to this service.
 
 - `npm run build`: strict TypeScript, copied skill assets, generated OpenAPI/discovery.
@@ -28,3 +28,8 @@ on failure. See [cutover](migration.md) before initial deployment.
 AI check repair regression tests use model/owner doubles. Never use a paid provider
 call as a unit/UI test. Regenerate discovery/OpenAPI and contracts after changing
 repair schemas. Contracts 1.1.0 source is locally generated; publication is separate.
+
+Persistent draft tests: PUBLISHER_TEST_MONGODB_URI=mongodb://127.0.0.1:27184 npm run test:e2e -- --runInBand.
+The suite uses a unique publisher_test_* database and drops only that isolated database.
+CI supplies MongoDB 7.0 and runs these cases. Without the test URI they are explicitly
+skipped; ordinary auth/MCP tests use doubles. Production credentials stay host-owned.

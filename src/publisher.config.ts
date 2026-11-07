@@ -87,6 +87,8 @@ export function loadPublisherConfig(environment: NodeJS.ProcessEnv) {
             apiKey: environment.OPENAI_API_KEY,
           }
         : undefined,
+    mongoUri: environment.MONGODB_URI,
+    mongoDatabase: environment.MONGODB_DATABASE || 'ai_publisher',
     port: parsed.data.PORT,
     runtime: { production: environment.NODE_ENV === 'production' },
   };
