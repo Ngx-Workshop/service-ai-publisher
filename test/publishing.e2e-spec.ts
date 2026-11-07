@@ -134,6 +134,24 @@ describe('Administrator publishing protocol', () => {
       }
       expect(report.status).toBe('complete');
       expect(report.ready).toBe(true);
+      const options = await client.callTool({
+        name: 'get_workshop_repair_options',
+        arguments: { preparationId: report.preparationId },
+      });
+      expect(
+        (options.structuredContent as { data: { activities: unknown[] } }).data
+          .activities
+      ).toEqual([]);
+      const foreignOptions = await request(url)
+        .post('/publisher/tools')
+        .set('Authorization', 'Bearer other-admin')
+        .send({
+          name: 'get_workshop_repair_options',
+          input: { preparationId: report.preparationId },
+        })
+        .expect(200);
+      expect((foreignOptions.body as { isError: boolean }).isError).toBe(true);
+
       const foreign = await request(url)
         .post('/publisher/tools')
         .set('Authorization', 'Bearer other-admin')
@@ -164,7 +182,7 @@ describe('Administrator publishing protocol', () => {
       .expect(401);
     expect(owner.assessment).not.toHaveBeenCalled();
   });
-  it('discovers twelve authoring tools with official client and validates editor draft', async () => {
+  it('discovers thirteen authoring tools with official client and validates editor draft', async () => {
     const client = new Client(
       { name: 'publisher-test', version: '1' },
       { versionNegotiation: { mode: { pin: '2026-07-28' } } }
@@ -176,7 +194,7 @@ describe('Administrator publishing protocol', () => {
         })
       );
       const discovery = await client.listTools();
-      expect(discovery.tools).toHaveLength(12);
+      expect(discovery.tools).toHaveLength(13);
       expect(
         discovery.tools.find((t) => t.name === 'publish_workshop')?.annotations
           ?.readOnlyHint

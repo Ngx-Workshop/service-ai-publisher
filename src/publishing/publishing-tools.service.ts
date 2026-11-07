@@ -33,6 +33,13 @@ export class PublishingToolsService {
       const value = definition.inputSchema.parse(input);
       let data: unknown;
       switch (name) {
+        case 'get_workshop_repair_options':
+          if (!this.preparations) throw new Error('Preparation is unavailable');
+          data = this.preparations.repairOptions(
+            (value as { preparationId: string }).preparationId,
+            identity
+          );
+          break;
         case 'start_workshop_preparation':
           if (!this.preparations) throw new Error('Preparation is unavailable');
           data = this.preparations.start(value, identity);

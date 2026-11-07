@@ -383,4 +383,186 @@ describe('private workshop preparation', () => {
       'Lab 1: At most 50 total tests execute.'
     );
   });
+  it('repairs an owned content finding once, reruns all checks and preserves its source', async () => {
+    const { service, generate, review, request } = setup();
+    const invalid = plannedDraft();
+    invalid.learningPlan.objectives[0].pageIndexes = [99];
+    const source = await terminal(
+      service,
+      service.start({ operation: 'check', draft: invalid }, identity)
+        .preparationId
+    );
+    const options = service.repairOptions(source.preparationId, identity);
+    expect(options.activities).toEqual([
+      { activityId: 'coverage', label: 'Objective coverage' },
+    ]);
+    const input = {
+      operation: 'repair',
+      preparationId: '22222222-2222-4222-8222-222222222222',
+      sourcePreparationId: source.preparationId,
+      expectedDraftHash: source.draftHash,
+      activityId: 'coverage',
+      model: 'allowed',
+    };
+    const started = service.start(input, identity);
+    expect(service.start(input, identity).preparationId).toBe(
+      started.preparationId
+    );
+    const result = await terminal(service, started.preparationId);
+    expect(result.ready).toBe(true);
+    expect(result.repairCount).toBe(1);
+    expect(generate).toHaveBeenCalledTimes(1);
+    const generationCall = generate.mock.calls[0] as unknown as [
+      unknown,
+      unknown,
+      { repair: unknown },
+    ];
+    expect(generationCall[0]).toMatchObject({
+      model: 'allowed',
+      sectionId: 'angular',
+    });
+    expect(generationCall[2].repair).toEqual({
+      draft: source.draft,
+      findings: [
+        'Objective coverage: ' +
+          source.activities.find((row) => row.id === 'coverage')!.detail,
+      ],
+    });
+    expect(review).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledTimes(6);
+    expect(service.get(source.preparationId, identity)).toEqual(source);
+  });
+  it('rejects foreign, stale, passed and superseded checks before a paid call', async () => {
+    const { service, generate } = setup();
+    const invalid = plannedDraft();
+    invalid.learningPlan.objectives[0].pageIndexes = [99];
+    const source = await terminal(
+      service,
+      service.start({ operation: 'check', draft: invalid }, identity)
+        .preparationId
+    );
+    const input = {
+      operation: 'repair',
+      sourcePreparationId: source.preparationId,
+      expectedDraftHash: source.draftHash,
+      activityId: 'coverage',
+    };
+    expect(() =>
+      service.start(input, { ...identity, subject: 'foreign' })
+    ).toThrow('unavailable');
+    expect(() =>
+      service.repairOptions(source.preparationId, {
+        ...identity,
+        subject: 'foreign',
+      })
+    ).toThrow('unavailable');
+    expect(() =>
+      service.start({ ...input, expectedDraftHash: '0'.repeat(64) }, identity)
+    ).toThrow('draft changed');
+    expect(() =>
+      service.start({ ...input, activityId: 'serialization' }, identity)
+    ).toThrow('cannot be repaired');
+    expect(generate).not.toHaveBeenCalled();
+    generate.mockResolvedValue(invalid);
+    const generated = await terminal(
+      service,
+      service.start(
+        {
+          operation: 'generate',
+          input: { brief: 'Numbers', sectionId: 'angular', level: 1 },
+        },
+        identity
+      ).preparationId
+    );
+    const final = service.repairOptions(generated.preparationId, identity);
+    expect(final.activities.map((row) => row.activityId)).toEqual([
+      'recheck-coverage',
+    ]);
+    expect(() =>
+      service.start(
+        {
+          ...input,
+          sourcePreparationId: generated.preparationId,
+          expectedDraftHash: generated.draftHash,
+        },
+        identity
+      )
+    ).toThrow('cannot be repaired');
+  });
+  it('does not turn service failures into paid repairs or loop a failed explicit revision', async () => {
+    const { service, generate, request } = setup();
+    request.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 503 },
+    });
+    const outage = await terminal(
+      service,
+      service.start({ operation: 'check', draft: plannedDraft() }, identity)
+        .preparationId
+    );
+    expect(
+      service.repairOptions(outage.preparationId, identity).activities
+    ).toEqual([]);
+    expect(() =>
+      service.start(
+        {
+          operation: 'repair',
+          sourcePreparationId: outage.preparationId,
+          expectedDraftHash: outage.draftHash,
+          activityId: 'lab-0-reference',
+        },
+        identity
+      )
+    ).toThrow('cannot be repaired');
+    expect(generate).not.toHaveBeenCalled();
+    const invalid = plannedDraft();
+    invalid.learningPlan.objectives[0].pageIndexes = [99];
+    const source = await terminal(
+      service,
+      service.start({ operation: 'check', draft: invalid }, identity)
+        .preparationId
+    );
+    generate.mockResolvedValue(invalid);
+    const result = await terminal(
+      service,
+      service.start(
+        {
+          operation: 'repair',
+          sourcePreparationId: source.preparationId,
+          expectedDraftHash: source.draftHash,
+          activityId: 'coverage',
+        },
+        identity
+      ).preparationId
+    );
+    expect(result.ready).toBe(false);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+  it('preserves the source draft when an explicit model repair fails', async () => {
+    const { service, generate } = setup();
+    const invalid = plannedDraft();
+    invalid.learningPlan.objectives[0].pageIndexes = [99];
+    const source = await terminal(
+      service,
+      service.start({ operation: 'check', draft: invalid }, identity)
+        .preparationId
+    );
+    generate.mockRejectedValue(new Error('private-provider-detail'));
+    const result = await terminal(
+      service,
+      service.start(
+        {
+          operation: 'repair',
+          sourcePreparationId: source.preparationId,
+          expectedDraftHash: source.draftHash,
+          activityId: 'coverage',
+        },
+        identity
+      ).preparationId
+    );
+    expect(result.status).toBe('failed');
+    expect(result.draft).toEqual(source.draft);
+    expect(JSON.stringify(result)).not.toContain('private-provider-detail');
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
 });

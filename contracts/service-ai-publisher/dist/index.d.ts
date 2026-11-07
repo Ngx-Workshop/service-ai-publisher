@@ -1,5 +1,6 @@
 import type { components } from './service-ai-publisher.types.js';
 export type PreparationReport = components['schemas']['PreparationReport'];
+export type PreparationRepairOptions = components['schemas']['PreparationRepairOptions'];
 export type PreparationActivity = components['schemas']['PreparationActivity'];
 export type StartWorkshopPreparationInput = components['schemas']['StartWorkshopPreparationInput'];
 export type LearningPlan = components['schemas']['LearningPlan'];

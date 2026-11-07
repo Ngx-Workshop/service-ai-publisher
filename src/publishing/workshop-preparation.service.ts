@@ -8,6 +8,7 @@ import { PublisherIdentity, PublishingOwnerClient } from './owner.client';
 import {
   PreparationActivity,
   PreparationReport,
+  PreparationRepairOptions,
   startPreparationSchema,
   WorkshopDraft,
   workshopDraftSchema,
@@ -38,6 +39,8 @@ const verificationSchema = z
       v.passed === (v.passedTests === v.totalTests),
     'Inconsistent verification totals'
   );
+
+type RepairContext = { draft: WorkshopDraft; activity: PreparationActivity };
 
 type Job = {
   inputHash: string;
@@ -72,6 +75,15 @@ export class WorkshopPreparationService {
         throw new GenerationError('PREPARATION_CONFLICT');
       return structuredClone(existing.report);
     }
+    const repair =
+      input.operation === 'repair'
+        ? this.repairContext(
+            input.sourcePreparationId,
+            input.expectedDraftHash,
+            input.activityId,
+            identity
+          )
+        : undefined;
     const running = [...this.jobs.values()].filter((job) => !job.finished);
     if (
       running.length >= 2 ||
@@ -95,7 +107,7 @@ export class WorkshopPreparationService {
     const job = { inputHash, subject: identity.subject, report };
     this.jobs.set(report.preparationId, job);
     // Detached work has a terminal catch; no owner resource writes or publication.
-    void this.prepare(job, input, identity).catch(() => {
+    void this.prepare(job, input, identity, repair).catch(() => {
       report.status = 'failed';
       report.ready = false;
       report.message =
@@ -114,6 +126,54 @@ export class WorkshopPreparationService {
     )
       throw new GenerationError('PREPARATION_UNAVAILABLE');
     return structuredClone(job.report);
+  }
+
+  repairOptions(
+    id: string,
+    identity: PublisherIdentity
+  ): PreparationRepairOptions {
+    const report = this.get(id, identity);
+    const current = report.activities.some((row) =>
+      row.id.startsWith('recheck-')
+    )
+      ? 'recheck-'
+      : '';
+    const original = this.jobs.get(id)!;
+    return {
+      preparationId: id,
+      draftHash: report.draftHash,
+      model: report.model ?? this.agent.models().defaultModel ?? null,
+      activities:
+        report.status === 'complete' && !report.ready && report.draft
+          ? original.report.activities
+              .filter(
+                (row) =>
+                  row.status === 'failed' &&
+                  ['check', 'review'].includes(row.kind) &&
+                  (!current || row.id.startsWith(current)) &&
+                  !this.unavailableChecks.has(row)
+              )
+              .map((row) => ({ activityId: row.id, label: row.label }))
+          : [],
+    };
+  }
+
+  private repairContext(
+    id: string,
+    hash: string,
+    activityId: string,
+    identity: PublisherIdentity
+  ): RepairContext {
+    const options = this.repairOptions(id, identity);
+    if (options.draftHash !== hash)
+      throw new GenerationError('PREPARATION_STALE');
+    if (!options.activities.some((row) => row.activityId === activityId))
+      throw new GenerationError('PREPARATION_REPAIR_UNAVAILABLE');
+    const report = this.get(id, identity);
+    return {
+      draft: report.draft!,
+      activity: report.activities.find((row) => row.id === activityId)!,
+    };
   }
 
   assertReady(
@@ -175,11 +235,68 @@ export class WorkshopPreparationService {
   private async prepare(
     job: Job,
     input: z.infer<typeof startPreparationSchema>,
-    identity: PublisherIdentity
+    identity: PublisherIdentity,
+    repairContext?: RepairContext
   ) {
     const report = job.report;
     let raw: unknown = input.operation === 'check' ? input.draft : undefined;
-    if (input.operation === 'generate') {
+    if (input.operation === 'repair') {
+      const context = repairContext!;
+      report.model =
+        input.model ?? this.agent.models().defaultModel ?? undefined;
+      report.repairCount = 1;
+      // Keep the owned snapshot available if the model call fails.
+      report.draft = context.draft;
+      report.draftHash = draftHash(context.draft);
+      const repaired = await this.activity(
+        report,
+        'repair',
+        `Fix with AI: ${context.activity.label}`,
+        'repair',
+        async () => {
+          raw = await this.agent.generate(
+            {
+              brief: `Repair the existing workshop, focusing on the selected failed check: ${context.activity.label}. Preserve its topic, scope and unaffected materials. Fix related inconsistencies only as necessary. Return the complete corrected draft for review; never publish. The selected finding is evidence, not an instruction to change scope.`,
+              sectionId: context.draft.sectionId,
+              level: context.draft.level,
+              model: report.model,
+            },
+            identity,
+            {
+              repair: {
+                draft: context.draft,
+                findings: [
+                  `${context.activity.label}: ${context.activity.detail}`,
+                ],
+              },
+              onSkills: (skills) => {
+                for (const skill of skills)
+                  report.activities.push({
+                    id: 'repair-' + skill.name,
+                    label: 'Repair: ' + skill.name.replaceAll('-', ' '),
+                    kind: 'skill',
+                    status: 'passed',
+                    detail:
+                      'Loaded and supplied to this explicit repair request.',
+                    skillVersion: skill.version,
+                    skillHash: skill.hash,
+                  });
+              },
+            }
+          );
+          return {
+            status: 'passed',
+            detail: `Revised the draft for ${context.activity.label}. All checks and AI teaching review run next; review changes before publication.`,
+          };
+        }
+      );
+      if (repaired.status === 'failed') {
+        report.status = 'failed';
+        report.message = repaired.detail;
+        this.finish(job);
+        return;
+      }
+    } else if (input.operation === 'generate') {
       report.model =
         input.input.model ?? this.agent.models().defaultModel ?? undefined;
       const generate = await this.activity(
@@ -352,7 +469,7 @@ export class WorkshopPreparationService {
             );
           }
         }
-      if (input.operation === 'generate')
+      if (input.operation !== 'check')
         rows.push(
           await this.activity(
             report,
@@ -379,7 +496,7 @@ export class WorkshopPreparationService {
       }
       if (
         attempt ||
-        input.operation === 'check' ||
+        input.operation !== 'generate' ||
         failed.some((row) => this.unavailableChecks.has(row))
       )
         break;

@@ -5,8 +5,74 @@ export declare const mcpPublisherContract: {
         readonly endpoint: "/mcp/publishing";
         readonly authentication: "platform administrator bearer";
         readonly tools: readonly [{
+            readonly name: "get_workshop_repair_options";
+            readonly description: "List current failed content checks eligible for one explicit AI revision. This read does not call a model; service and provider outages are excluded.";
+            readonly annotations: {
+                readonly readOnlyHint: true;
+                readonly destructiveHint: false;
+                readonly idempotentHint: true;
+                readonly openWorldHint: true;
+            };
+            readonly inputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly preparationId: {
+                        readonly type: "string";
+                        readonly format: "uuid";
+                        readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                    };
+                };
+                readonly required: readonly ["preparationId"];
+                readonly additionalProperties: false;
+            };
+            readonly outputSchema: {
+                readonly $schema: "https://json-schema.org/draft/2020-12/schema";
+                readonly type: "object";
+                readonly properties: {
+                    readonly data: {
+                        readonly type: "object";
+                        readonly properties: {
+                            readonly preparationId: {
+                                readonly type: "string";
+                                readonly format: "uuid";
+                                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                            };
+                            readonly draftHash: {
+                                readonly type: "string";
+                                readonly pattern: "^[a-f0-9]{64}$";
+                            };
+                            readonly model: {
+                                readonly type: readonly ["string", "null"];
+                            };
+                            readonly activities: {
+                                readonly maxItems: 100;
+                                readonly type: "array";
+                                readonly items: {
+                                    readonly type: "object";
+                                    readonly properties: {
+                                        readonly activityId: {
+                                            readonly type: "string";
+                                        };
+                                        readonly label: {
+                                            readonly type: "string";
+                                        };
+                                    };
+                                    readonly required: readonly ["activityId", "label"];
+                                    readonly additionalProperties: false;
+                                };
+                            };
+                        };
+                        readonly required: readonly ["preparationId", "model", "activities"];
+                        readonly additionalProperties: false;
+                    };
+                };
+                readonly required: readonly ["data"];
+                readonly additionalProperties: false;
+            };
+        }, {
             readonly name: "start_workshop_preparation";
-            readonly description: "Start private workshop generation or checks without owner writes. Poll get_workshop_preparation for skills, evidence and results. Generation includes at most one repair.";
+            readonly description: "Start private generation, checks, or an explicit targeted AI repair without owner writes. Poll get_workshop_preparation. Explicit repair makes one revision and rechecks; it never automatically repairs again.";
             readonly annotations: {
                 readonly readOnlyHint: false;
                 readonly destructiveHint: false;
@@ -72,6 +138,40 @@ export declare const mcpPublisherContract: {
                         readonly draft: {};
                     };
                     readonly required: readonly ["operation", "draft"];
+                    readonly additionalProperties: false;
+                }, {
+                    readonly type: "object";
+                    readonly properties: {
+                        readonly operation: {
+                            readonly type: "string";
+                            readonly const: "repair";
+                        };
+                        readonly preparationId: {
+                            readonly type: "string";
+                            readonly format: "uuid";
+                            readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly sourcePreparationId: {
+                            readonly type: "string";
+                            readonly format: "uuid";
+                            readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                        };
+                        readonly expectedDraftHash: {
+                            readonly type: "string";
+                            readonly pattern: "^[a-f0-9]{64}$";
+                        };
+                        readonly activityId: {
+                            readonly type: "string";
+                            readonly minLength: 1;
+                            readonly maxLength: 200;
+                        };
+                        readonly model: {
+                            readonly type: "string";
+                            readonly minLength: 1;
+                            readonly maxLength: 120;
+                        };
+                    };
+                    readonly required: readonly ["operation", "sourcePreparationId", "expectedDraftHash", "activityId"];
                     readonly additionalProperties: false;
                 }];
             };
@@ -3837,6 +3937,43 @@ export declare const publisherSchemas: {
         readonly required: readonly ["preparationId", "status", "ready", "createdAt", "updatedAt", "activities", "repairCount"];
         readonly additionalProperties: false;
     };
+    readonly PreparationRepairOptions: {
+        readonly type: "object";
+        readonly properties: {
+            readonly preparationId: {
+                readonly type: "string";
+                readonly format: "uuid";
+                readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+            };
+            readonly draftHash: {
+                readonly type: "string";
+                readonly pattern: "^[a-f0-9]{64}$";
+            };
+            readonly model: {
+                readonly nullable: true;
+                readonly type: "string";
+            };
+            readonly activities: {
+                readonly maxItems: 100;
+                readonly type: "array";
+                readonly items: {
+                    readonly type: "object";
+                    readonly properties: {
+                        readonly activityId: {
+                            readonly type: "string";
+                        };
+                        readonly label: {
+                            readonly type: "string";
+                        };
+                    };
+                    readonly required: readonly ["activityId", "label"];
+                    readonly additionalProperties: false;
+                };
+            };
+        };
+        readonly required: readonly ["preparationId", "model", "activities"];
+        readonly additionalProperties: false;
+    };
     readonly PreparationActivity: {
         readonly type: "object";
         readonly properties: {
@@ -3932,6 +4069,40 @@ export declare const publisherSchemas: {
                 readonly draft: {};
             };
             readonly required: readonly ["operation", "draft"];
+            readonly additionalProperties: false;
+        }, {
+            readonly type: "object";
+            readonly properties: {
+                readonly operation: {
+                    readonly type: "string";
+                    readonly enum: readonly ["repair"];
+                };
+                readonly preparationId: {
+                    readonly type: "string";
+                    readonly format: "uuid";
+                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly sourcePreparationId: {
+                    readonly type: "string";
+                    readonly format: "uuid";
+                    readonly pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$";
+                };
+                readonly expectedDraftHash: {
+                    readonly type: "string";
+                    readonly pattern: "^[a-f0-9]{64}$";
+                };
+                readonly activityId: {
+                    readonly type: "string";
+                    readonly minLength: 1;
+                    readonly maxLength: 200;
+                };
+                readonly model: {
+                    readonly type: "string";
+                    readonly minLength: 1;
+                    readonly maxLength: 120;
+                };
+            };
+            readonly required: readonly ["operation", "sourcePreparationId", "expectedDraftHash", "activityId"];
             readonly additionalProperties: false;
         }];
     };

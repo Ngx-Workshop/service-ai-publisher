@@ -20,6 +20,8 @@ const messages: Record<string, string> = {
   LAB_PREFLIGHT_INVALID_RESPONSE:
     'The coding-labs service returned an incompatible verification result. Check that the gateway and coding-labs versions agree, then validate this draft again.',
 
+  PREPARATION_REPAIR_UNAVAILABLE:
+    'This check cannot be repaired with AI. Run fresh checks after resolving service access, or select a current failed content check.',
   PREPARATION_CONFLICT:
     'Preparation ID belongs to different inputs. Resume the original preparation or start fresh checks.',
   PREPARATION_UNAVAILABLE:

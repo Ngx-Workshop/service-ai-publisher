@@ -434,6 +434,20 @@ export const preparationReportSchema = z.strictObject({
   draftHash: z.string().optional(),
   message: z.string().optional(),
 });
+export const preparationRepairOptionsSchema = z.strictObject({
+  preparationId: z.string().uuid(),
+  draftHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  model: z.string().nullable(),
+  activities: z
+    .array(z.strictObject({ activityId: z.string(), label: z.string() }))
+    .max(100),
+});
+export type PreparationRepairOptions = z.infer<
+  typeof preparationRepairOptionsSchema
+>;
 export const startPreparationSchema = z.discriminatedUnion('operation', [
   z.strictObject({
     operation: z.literal('generate'),
@@ -445,12 +459,26 @@ export const startPreparationSchema = z.discriminatedUnion('operation', [
     preparationId: z.string().uuid().optional(),
     draft: z.unknown(),
   }),
+  z.strictObject({
+    operation: z.literal('repair'),
+    preparationId: z.string().uuid().optional(),
+    sourcePreparationId: z.string().uuid(),
+    expectedDraftHash: z.string().regex(/^[a-f0-9]{64}$/),
+    activityId: z.string().min(1).max(200),
+    model: z.string().trim().min(1).max(120).optional(),
+  }),
 ]);
 export type PreparationReport = z.infer<typeof preparationReportSchema>;
 export type PreparationActivity = z.infer<typeof preparationActivitySchema>;
 export const publishingDefinitions = {
+  get_workshop_repair_options: definition(
+    'List current failed content checks eligible for one explicit AI revision. This read does not call a model; service and provider outages are excluded.',
+    z.strictObject({ preparationId: z.string().uuid() }),
+    read,
+    z.strictObject({ data: preparationRepairOptionsSchema })
+  ),
   start_workshop_preparation: definition(
-    'Start private workshop generation or checks without owner writes. Poll get_workshop_preparation for skills, evidence and results. Generation includes at most one repair.',
+    'Start private generation, checks, or an explicit targeted AI repair without owner writes. Poll get_workshop_preparation. Explicit repair makes one revision and rechecks; it never automatically repairs again.',
     startPreparationSchema,
     { ...write, destructiveHint: false },
     z.strictObject({ data: preparationReportSchema })
@@ -524,6 +552,7 @@ export const publishingReceiptSchema = z.strictObject({
 });
 export const publishingContractSchemas = {
   PreparationReport: preparationReportSchema,
+  PreparationRepairOptions: preparationRepairOptionsSchema,
   PreparationActivity: preparationActivitySchema,
   StartWorkshopPreparationInput: startPreparationSchema,
   LearningPlan: learningPlanSchema,

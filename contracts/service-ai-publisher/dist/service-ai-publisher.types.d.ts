@@ -132,6 +132,16 @@ export interface components {
             draftHash?: string;
             message?: string;
         };
+        PreparationRepairOptions: {
+            /** Format: uuid */
+            preparationId: string;
+            draftHash?: string;
+            model: string | null;
+            activities: {
+                activityId: string;
+                label: string;
+            }[];
+        };
         PreparationActivity: {
             id: string;
             label: string;
@@ -162,6 +172,16 @@ export interface components {
             /** Format: uuid */
             preparationId?: string;
             draft: unknown;
+        } | {
+            /** @enum {string} */
+            operation: "repair";
+            /** Format: uuid */
+            preparationId?: string;
+            /** Format: uuid */
+            sourcePreparationId: string;
+            expectedDraftHash: string;
+            activityId: string;
+            model?: string;
         };
         LearningPlan: {
             prerequisites: string[];

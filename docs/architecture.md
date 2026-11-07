@@ -6,7 +6,7 @@ existing generation/preflight fixes. The seed example CRUD and MongoDB are remov
 HTTP/MCP → PublishingController administrator authorization → PublishingToolsService
 → DraftAgentService / WorkshopPreparationService / PublishingRunService → trusted
 REST owner adapters. Native endpoints are `/publisher/tools` and `/mcp/publishing`.
-The publisher exposes twelve authoring tools; no catalog endpoint is registered.
+The publisher exposes thirteen authoring tools; no catalog endpoint is registered.
 
 `src/publisher.config.ts` validates owner URLs, port, model settings and absolute
 journal path. `src/main.ts` disables automatic body parsing so authorization runs
@@ -31,3 +31,11 @@ The publisher package exports independent input/output types, mcpPublisherContra
 and publisherSchemas. Source schemas generate OpenAPI and discovery; the gateway's
 compatibility schemas are generated from that packaged snapshot, without importing
 publisher source. See [migration](migration.md) for rollout and receipt ownership.
+
+## Explicit AI repair of failed checks
+
+get_workshop_repair_options reads server-authoritative eligible failed content rows.
+start_workshop_preparation operation repair binds a new job to the owned source
+report hash and activity, calls one revision and reruns checks plus teaching review.
+The old report/receipt shapes remain unchanged. No owner resources are written.
+See specs/002-ai-check-repair/handoff.md for compatibility, security and release.

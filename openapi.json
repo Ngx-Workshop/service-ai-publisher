@@ -650,6 +650,50 @@
         ],
         "additionalProperties": false
       },
+      "PreparationRepairOptions": {
+        "type": "object",
+        "properties": {
+          "preparationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "draftHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "model": {
+            "nullable": true,
+            "type": "string"
+          },
+          "activities": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "activityId": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "activityId",
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "preparationId",
+          "model",
+          "activities"
+        ],
+        "additionalProperties": false
+      },
       "PreparationActivity": {
         "type": "object",
         "properties": {
@@ -779,6 +823,48 @@
             "required": [
               "operation",
               "draft"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "repair"
+                ]
+              },
+              "preparationId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "sourcePreparationId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "expectedDraftHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "activityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              }
+            },
+            "required": [
+              "operation",
+              "sourcePreparationId",
+              "expectedDraftHash",
+              "activityId"
             ],
             "additionalProperties": false
           }

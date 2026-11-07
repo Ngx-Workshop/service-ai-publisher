@@ -24,3 +24,7 @@ initializes a missing root-owned 0600 `/etc/ngx-workshop/ai-publisher/runtime.en
 from allowlisted private gateway settings without overwriting existing files, checks image
 identity, rejects other active journal writers and restores the previous container
 on failure. See [cutover](migration.md) before initial deployment.
+
+AI check repair regression tests use model/owner doubles. Never use a paid provider
+call as a unit/UI test. Regenerate discovery/OpenAPI and contracts after changing
+repair schemas. Contracts 1.1.0 source is locally generated; publication is separate.

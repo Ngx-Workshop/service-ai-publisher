@@ -16,4 +16,6 @@ Keep one row per feature, retain completed records for rationale, and update
 status when work changes. Select work from the user's request and this index;
 the largest folder number is not automatically the active feature.
 
-| Publisher migration | Implemented; integration pending | [001](./001-publisher-migration/spec.md) | [Plan](./001-publisher-migration/plan.md) | [Tasks](./001-publisher-migration/tasks.md) | [Handoff](./001-publisher-migration/handoff.md) |
+| Publisher migration | Deployed; authoring acceptance pending | [001](./001-publisher-migration/spec.md) | [Plan](./001-publisher-migration/plan.md) | [Tasks](./001-publisher-migration/tasks.md) | [Handoff](./001-publisher-migration/handoff.md) |
+
+| 002 AI check repair | Implemented; release pending | [Spec](002-ai-check-repair/spec.md) | [Plan](002-ai-check-repair/plan.md) | [Tasks](002-ai-check-repair/tasks.md) | [Handoff](002-ai-check-repair/handoff.md) |
