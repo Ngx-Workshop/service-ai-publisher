@@ -1,6 +1,6 @@
 # Development and verification
 
-Use Node 22.23.3 and `npm ci`. Configure `.env.example` with reachable trusted owner
+Use Node 22.23.5 and `npm ci`. Configure `.env.example` with reachable trusted owner
 URLs, AUTH_BASE_URL and a writable absolute PUBLISHING_JOURNAL_DIRECTORY. Configure MONGODB_URI and MONGODB_DATABASE for publisher-owned persistence. There is
 no OpenAPI-generation auth stub. PUBLISHING_ENABLED=true enables guarded
 authoring; false returns 404. Model credentials belong only to this service.

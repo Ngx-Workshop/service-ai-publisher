@@ -5,7 +5,7 @@ receipts. Native administrator endpoints: `/publisher/tools` (browser facade) an
 `/mcp/publishing` (stateless MCP). Default port: 3014. All tool requests require
 platform administrator authorization through service-auth. There is no MongoDB.
 
-Use Node 22.23.3. Run `npm ci`, copy `.env.example` to `.env`, supply trusted owner
+Use Node 22.23.5. Run `npm ci`, copy `.env.example` to `.env`, supply trusted owner
 URLs and a private writable journal directory, then `npm run start:dev`. Set
 `OPENAI_API_KEY` privately for paid generation. Validation and publication do not
 require model credentials. Tests use doubles and never call paid providers.
