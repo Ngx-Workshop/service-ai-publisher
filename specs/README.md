@@ -21,3 +21,5 @@ the largest folder number is not automatically the active feature.
 | 002 AI check repair | Deployed; live CTA verified | [Spec](002-ai-check-repair/spec.md) | [Plan](002-ai-check-repair/plan.md) | [Tasks](002-ai-check-repair/tasks.md) | [Handoff](002-ai-check-repair/handoff.md) |
 
 | 003 Persistent workshop drafts | Deployed; live recovery verified | [Spec](003-persistent-drafts/spec.md) | [Plan](003-persistent-drafts/plan.md) | [Tasks](003-persistent-drafts/tasks.md) | [Handoff](003-persistent-drafts/handoff.md) |
+
+- [004-deployment-cleanup](004-deployment-cleanup/spec.md): Deployment cleanup; implemented and locally verified.

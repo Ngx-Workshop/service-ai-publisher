@@ -33,3 +33,7 @@ Persistent draft tests: PUBLISHER_TEST_MONGODB_URI=mongodb://127.0.0.1:27184 npm
 The suite uses a unique publisher_test_* database and drops only that isolated database.
 CI supplies MongoDB 7.0 and runs these cases. Without the test URI they are explicitly
 skipped; ordinary auth/MCP tests use doubles. Production credentials stay host-owned.
+
+## Deployment storage policy
+
+See [deployment cleanup](deployment-cleanup.md) for success-only image/container retention and local verification.
