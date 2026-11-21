@@ -1,3 +1,4 @@
+import { ObservabilityModule } from './observability/observability.module';
 import { DraftRepository } from './publishing/draft.repository';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -11,7 +12,11 @@ import { DraftAgentService } from './publishing/draft-agent.service';
 import { WorkshopPreparationService } from './publishing/workshop-preparation.service';
 import { PUBLISHER_CONFIG, loadPublisherConfig } from './publisher.config';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), HttpModule],
+  imports: [
+    ObservabilityModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    HttpModule,
+  ],
   controllers: [PublishingController],
   providers: [
     DraftRepository,

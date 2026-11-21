@@ -23,3 +23,5 @@ the largest folder number is not automatically the active feature.
 | 003 Persistent workshop drafts | Deployed; live recovery verified | [Spec](003-persistent-drafts/spec.md) | [Plan](003-persistent-drafts/plan.md) | [Tasks](003-persistent-drafts/tasks.md) | [Handoff](003-persistent-drafts/handoff.md) |
 
 - [004-deployment-cleanup](004-deployment-cleanup/spec.md): Deployment cleanup; implemented and locally verified.
+
+- [005-service-observability](005-service-observability/spec.md): Implemented and locally verified; Grafana ingestion authorization pending.
