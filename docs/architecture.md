@@ -72,3 +72,5 @@ inputs accept draftId/draftVersion; repairs retain the prior preparation referen
 restoring review after refresh. Generation brief/model and source edits are durable.
 Published drafts leave Your drafts; stable draft-based publication request IDs preserve
 receipt idempotency after refresh. No owner schema changes or historical migration.
+
+Generated deployment orchestration is centrally managed by the Node CLI; see [deployment-workflows](deployment-workflows.md).

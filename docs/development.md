@@ -31,8 +31,8 @@ AI check repair regression tests use model/owner doubles. Never use a paid provi
 call as a unit/UI test. Regenerate discovery/OpenAPI and contracts after changing
 repair schemas. Contracts 1.1.0 source is locally generated; publication is separate.
 
-Persistent draft tests: PUBLISHER_TEST_MONGODB_URI=mongodb://127.0.0.1:27184 npm run test:e2e -- --runInBand.
-The suite uses a unique publisher_test_* database and drops only that isolated database.
+Persistent draft tests: PUBLISHER*TEST_MONGODB_URI=mongodb://127.0.0.1:27184 npm run test:e2e -- --runInBand.
+The suite uses a unique publisher_test*\* database and drops only that isolated database.
 CI supplies MongoDB 7.0 and runs these cases. Without the test URI they are explicitly
 skipped; ordinary auth/MCP tests use doubles. Production credentials stay host-owned.
 
@@ -64,3 +64,5 @@ clean-install/real-Git-hook cases: developer and partial staging, CI, package-on
 no-Git and production/no-dev. Fixtures clean their private temporary directories.
 Validated with delivery Node 22.23.5/npm 10.9.9. Local application regressions also
 pass on Node 24.9.0; Docker daemon and live Grafana remain separate prerequisites.
+
+Deployment and npm publication now follow [deployment-workflows](deployment-workflows.md).
