@@ -13,7 +13,8 @@ import type {
   UpdateAssessmentTestDto,
 } from '@tmdjr/service-nestjs-assessment-test-contracts';
 import type { AssetDto } from '@tmdjr/service-uploader-contracts';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { currentRequestId } from '../observability/observability';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
@@ -35,6 +36,7 @@ export interface PublisherIdentity {
 export type Owner = 'document' | 'codingLabs' | 'assessment' | 'uploader';
 @Injectable()
 export class PublishingOwnerClient {
+  private readonly logger = new Logger(PublishingOwnerClient.name);
   constructor(
     private readonly http: HttpService,
     @Inject(PUBLISHER_CONFIG) private readonly config: PublisherConfig
@@ -53,6 +55,7 @@ export class PublishingOwnerClient {
           ? this.config.codingLabsBaseUrl
           : this.config.publishing?.[`${owner}BaseUrl`];
     if (!base) throw new Error('Publishing owner not configured');
+    const started = performance.now();
     const result = await firstValueFrom(
       this.http.request<unknown>({
         method,
@@ -69,7 +72,17 @@ export class PublishingOwnerClient {
         maxBodyLength: 8 * 1024 * 1024,
         proxy: false,
       })
-    );
+    ).catch((error: unknown) => {
+      this.logger.warn({
+        event: 'publishing_owner_request',
+        owner,
+        method,
+        outcome: 'failed',
+        requestId: currentRequestId(),
+        durationMs: Math.round(performance.now() - started),
+      });
+      throw error;
+    });
     return result.data ?? null;
   }
   async document(value: unknown, identity: PublisherIdentity) {

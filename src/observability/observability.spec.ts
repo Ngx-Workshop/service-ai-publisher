@@ -3,10 +3,20 @@ import { Controller, Get, INestApplication, Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { ObservabilityModule } from './observability.module';
-import { createServiceLogger, httpLoggingMiddleware } from './observability';
+import {
+  createServiceLogger,
+  currentRequestId,
+  httpLoggingMiddleware,
+} from './observability';
 
 @Controller('items')
 class TestController {
+  @Get('context')
+  async context() {
+    const before = currentRequestId();
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    return { before, after: currentRequestId() };
+  }
   @Get(':id')
   get() {
     return { ok: true };
@@ -106,5 +116,33 @@ describe('Service observability', () => {
     } finally {
       write.mockRestore();
     }
+  });
+  it('isolates concurrent async context and ignores untrusted incoming IDs', async () => {
+    const responses = await Promise.all(
+      [1, 2].map(() =>
+        request(app.getHttpServer())
+          .get('/items/context')
+          .set('X-Request-ID', 'private-injected-id')
+          .expect(200)
+      )
+    );
+    for (const response of responses) {
+      expect(response.body).toEqual({
+        before: response.headers['x-request-id'],
+        after: response.headers['x-request-id'],
+      });
+    }
+    expect(responses[0].headers['x-request-id']).not.toBe(
+      responses[1].headers['x-request-id']
+    );
+    expect(currentRequestId()).toBeUndefined();
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private-injected-id');
+  });
+
+  it('keeps HEAD heartbeat polls quiet', async () => {
+    await request(app.getHttpServer()).head('/health').expect(200);
+    expect(log).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
   });
 });

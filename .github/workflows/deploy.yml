@@ -41,6 +41,8 @@ jobs:
           npm test -- --runInBand
           npm run test:e2e -- --runInBand
           npm run lint:check
+          npm run format:check
+          node --test scripts/test-maintenance-workflow.cjs
           npm --prefix contracts/service-ai-publisher ci
           npm run contracts:service-ai-publisher:gen
           npm run contracts:service-ai-publisher:build

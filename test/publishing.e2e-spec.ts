@@ -1,6 +1,7 @@
 import { DraftRepository } from '../src/publishing/draft.repository';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
+import { httpLoggingMiddleware } from '../src/observability/observability';
 import { AuthClientService } from '@tmdjr/ngx-auth-client';
 import {
   Client,
@@ -74,9 +75,11 @@ describe('Administrator publishing protocol', () => {
           user?: unknown;
         }) => {
           if (
-            !['Bearer admin-token', 'Bearer other-admin'].includes(
-              req.headers.authorization
-            )
+            ![
+              'Bearer admin-token',
+              'Bearer other-admin',
+              'Bearer member',
+            ].includes(req.headers.authorization)
           )
             throw new Error('Invalid token');
           req.user = {
@@ -84,13 +87,17 @@ describe('Administrator publishing protocol', () => {
               req.headers.authorization === 'Bearer other-admin'
                 ? 'other-admin'
                 : 'admin',
-            role: 'admin',
+            role:
+              req.headers.authorization === 'Bearer member'
+                ? 'member'
+                : 'admin',
           };
           return Promise.resolve(true);
         },
       })
       .compile();
     app = module.createNestApplication({ bodyParser: false });
+    app.use(httpLoggingMiddleware());
     await app.listen(0, '127.0.0.1');
     url = await app.getUrl();
   });
@@ -184,6 +191,70 @@ describe('Administrator publishing protocol', () => {
       .send({})
       .expect(401);
     expect(owner.assessment).not.toHaveBeenCalled();
+  });
+  it('authorizes before JSON parsing and preserves transport errors', async () => {
+    await request(url)
+      .post('/publisher/tools')
+      .set('Content-Type', 'application/json')
+      .send('{')
+      .expect(401, { error: 'administrator_sign_in_required' });
+    await request(url)
+      .post('/publisher/tools')
+      .set('Authorization', 'Bearer admin-token')
+      .set('Content-Type', 'application/json')
+      .send('{')
+      .expect(400, { error: 'invalid_request' });
+    await request(url)
+      .post('/publisher/tools')
+      .set('Authorization', 'Bearer member')
+      .send({})
+      .expect(403, { error: 'administrator_required' });
+    await request(url)
+      .post('/publisher/tools')
+      .set('Authorization', 'Bearer admin-token')
+      .set('Origin', 'https://foreign.example')
+      .send({})
+      .expect(403, { error: 'publishing_origin_denied' });
+  });
+  it('correlates actual tool outcomes with the generated HTTP request ID', async () => {
+    const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    try {
+      const response = await request(url)
+        .post('/publisher/tools')
+        .set('Authorization', 'Bearer admin-token')
+        .set('X-Request-ID', 'private-untrusted-id')
+        .send({ name: 'list_publishing_models', input: {} })
+        .expect(200);
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event: 'publishing_tool',
+          tool: 'list_publishing_models',
+          outcome: 'success',
+          requestId: response.headers['x-request-id'],
+        })
+      );
+      expect(JSON.stringify(log.mock.calls)).not.toContain('private-');
+    } finally {
+      log.mockRestore();
+    }
+  });
+  it('preserves safe tool failure responses when an owner rejects a call', async () => {
+    owner.assessment.mockRejectedValueOnce(new Error('private-owner-secret'));
+    const response = await request(url)
+      .post('/publisher/tools')
+      .set('Authorization', 'Bearer admin-token')
+      .send({ name: 'manage_assessment', input: { operation: 'list' } })
+      .expect(200);
+    expect(response.body).toEqual({
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: expect.stringContaining('PUBLISHING_FAILED') as unknown,
+        },
+      ],
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private-owner-secret');
   });
   it('discovers sixteen authoring tools with official client and validates editor draft', async () => {
     const client = new Client(

@@ -4,6 +4,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { McpServer, CallToolResult } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { GenerationError } from './generation-error';
+import { currentRequestId } from '../observability/observability';
 import { DraftAgentService } from './draft-agent.service';
 import { PublisherIdentity, PublishingOwnerClient } from './owner.client';
 import { PublishingRunService } from './publishing-run.service';
@@ -27,6 +28,15 @@ export class PublishingToolsService {
     input: unknown,
     identity: PublisherIdentity
   ): Promise<CallToolResult> {
+    const started = performance.now();
+    const tool = Object.hasOwn(publishingDefinitions, name) ? name : 'unknown';
+    const event = (outcome: 'success' | 'failed') => ({
+      event: 'publishing_tool',
+      tool,
+      outcome,
+      requestId: currentRequestId(),
+      durationMs: Math.round(performance.now() - started),
+    });
     try {
       if (!Object.hasOwn(publishingDefinitions, name))
         throw new Error('Unknown publishing tool');
@@ -164,15 +174,22 @@ export class PublishingToolsService {
         }
       }
       const structuredContent = { data };
+      const text = JSON.stringify(structuredContent);
+      if (name !== 'get_workshop_preparation')
+        this.logger.log(event('success'));
       return {
         structuredContent,
-        content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+        content: [{ type: 'text', text }],
       };
     } catch (error) {
-      if (error instanceof GenerationError)
-        this.logger.warn(
-          `Draft generation failed: ${error.code}${error.fields.length ? `; fields: ${error.fields.join(', ')}` : ''}`
-        );
+      const entry = {
+        ...event('failed'),
+        failure:
+          error instanceof z.ZodError ? 'invalid_input' : 'operation_failed',
+      };
+      if (error instanceof GenerationError || error instanceof z.ZodError)
+        this.logger.warn(entry);
+      else this.logger.error(entry);
       const message =
         error instanceof GenerationError
           ? error.message

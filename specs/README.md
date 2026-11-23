@@ -1,5 +1,18 @@
 # Feature specifications
 
+## Next task: Code Maintenance
+
+Status: Implemented; integration pending. Selected on 2026-11-22.
+Local maintenance checks pass; isolated MongoDB, Docker image and live Grafana
+acceptance remain pending as recorded in the handoff.
+
+[Spec](006-code-maintenance/spec.md) · [Plan](006-code-maintenance/plan.md) ·
+[Tasks](006-code-maintenance/tasks.md) · [Handoff](006-code-maintenance/handoff.md) ·
+[Reusable Copilot prompt](../.github/prompts/code-maintenance.prompt.md)
+
+T001–T010 local implementation and evidence are recorded. Older unfinished work
+retains its recorded status below.
+
 Keep implementation context in this repository so future agents can resume work
 without the original conversation or other repository checkouts.
 
@@ -9,7 +22,7 @@ below with relative links. A feature folder contains `spec.md`, `plan.md`,
 `tasks.md`, and `handoff.md`; add supporting research/contracts only when useful.
 
 | Feature | Status | Spec | Plan | Tasks | Handoff |
-| --- | --- | --- | --- | --- | --- |
+| ---------------------- | ------ | ---- | ---- | ----- | ------- | --- |
 | No feature records yet | — | — | — | — | — | — |
 
 Keep one row per feature, retain completed records for rationale, and update

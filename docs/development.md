@@ -9,6 +9,8 @@ authoring; false returns 404. Model credentials belong only to this service.
 - `npm test -- --runInBand`: generation/check/receipt and HTTP-owner unit tests.
 - `npm run test:e2e -- --runInBand`: real Nest socket and official MCP client, auth/owner doubles.
 - `npm run lint:check`: non-mutating typed lint/format check.
+- `npm run format:check`: non-mutating Prettier gate for maintained source/test
+  TypeScript (the verified existing formatting baseline).
 - `npm --prefix contracts/service-ai-publisher ci`, then root contract gen/build scripts.
 - `node --test scripts/test-publish-workflow.cjs`: publication failure/rerun tests.
 - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts -p test_deploy_production.py -v`: delivery/rollback tests without Docker.
@@ -41,3 +43,24 @@ See [deployment cleanup](deployment-cleanup.md) for success-only image/container
 ## Service observability
 
 See [logging and heartbeat](observability.md) for operational endpoint semantics, JSON logging, collector ownership and actual validation.
+
+## Staged formatting
+
+`npm ci` enables Husky on developer Git checkouts. Pre-commit invokes the installed
+lint-staged with the explicit root config, formatting only staged supported
+TypeScript/JavaScript, JSON, Markdown and YAML files. Default stash/hide behavior
+preserves partially staged and unrelated unstaged changes; parser failures block
+the commit. No package download occurs at commit time.
+
+The self-contained prepare command skips CI, HUSKY=0, production, omitted dev
+dependencies and no-Git installs, without requiring a copied installer script.
+Existing Docker install/prune `--ignore-scripts` behavior is unchanged.
+Prettier ignores generated contracts/snapshots, build/coverage output, versioned
+authoring assets and fixtures. CI gates the already-clean source/test baseline;
+it does not silently impose a whole-repository formatting rewrite.
+
+Run `node --test scripts/test-maintenance-workflow.cjs` for four disposable
+clean-install/real-Git-hook cases: developer and partial staging, CI, package-only
+no-Git and production/no-dev. Fixtures clean their private temporary directories.
+Validated with delivery Node 22.23.5/npm 10.9.9. Local application regressions also
+pass on Node 24.9.0; Docker daemon and live Grafana remain separate prerequisites.

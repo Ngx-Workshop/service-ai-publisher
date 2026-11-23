@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+coverage/
+contracts/
+openapi.json
+mcp-tools.json
+package-lock.json
+src/publishing/skills/
+test/fixtures/

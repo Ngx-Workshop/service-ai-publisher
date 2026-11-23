@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { currentRequestId } from '../observability/observability';
 import { createHash } from 'node:crypto';
 import {
   mkdir,
@@ -26,6 +27,7 @@ const workshop = resource.extend({
 export type PublishingRun = z.infer<typeof publishingReceiptSchema>;
 @Injectable()
 export class PublishingRunService {
+  private readonly logger = new Logger(PublishingRunService.name);
   private readonly active = new Set<string>();
   constructor(
     private readonly owner: PublishingOwnerClient,
@@ -91,6 +93,7 @@ export class PublishingRunService {
     identity: PublisherIdentity,
     preparation?: Omit<PreparationReport, 'draft'>
   ): Promise<PublishingRun> {
+    const started = performance.now();
     const { requestId, draft } = publishInputSchema.parse(value);
     const hash = createHash('sha256')
       .update(JSON.stringify(draft))
@@ -367,6 +370,15 @@ export class PublishingRunService {
           'Publishing stopped. Inspect completed resources and reconcile the last recorded step before retrying. No automatic rollback or replay occurred.';
       }
       await this.save(run);
+      const entry = {
+        event: 'publishing_run',
+        runId: requestId,
+        requestId: currentRequestId(),
+        outcome: run.status,
+        durationMs: Math.round(performance.now() - started),
+      };
+      if (run.status === 'needs_recovery') this.logger.warn(entry);
+      else this.logger.log(entry);
       return run;
     } finally {
       this.active.delete(requestId);

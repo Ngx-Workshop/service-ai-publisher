@@ -21,3 +21,15 @@ The catalog gateway retains only forwarding compatibility; catalog OAuth belongs
   See docs/migration.md before cutover or rollback. Drafts and preparation checkpoints are durable; active execution is process-local.
 - Main delivery publishes and deploys validated artifacts; a local build does neither.
 - Consumer changes need a standalone contract handoff and context-doc updates.
+
+## Next task: Code Maintenance
+
+The selected work is [Code Maintenance](specs/006-code-maintenance/spec.md)
+(Implemented; integration pending).
+Read its [plan](specs/006-code-maintenance/plan.md), [tasks](specs/006-code-maintenance/tasks.md) and
+[handoff](specs/006-code-maintenance/handoff.md). Resume its integration checks; retain older unfinished
+feature records without treating them as the next task. The requested work covers
+NestJS module/domain boundaries, thin controllers, cohesive services, Prettier
+with Husky/lint-staged, CI checks and safe domain logging through existing
+observability. Local implementation is verified; isolated MongoDB, Docker image
+and live Grafana acceptance remain separate pending checks.

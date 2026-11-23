@@ -1,6 +1,7 @@
 import { DraftRepository, StoredPreparation } from './draft.repository';
 import { labPreflightError } from './lab-preflight-error';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { currentRequestId } from '../observability/observability';
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { DraftAgentService } from './draft-agent.service';
@@ -52,6 +53,11 @@ type Job = {
 };
 @Injectable()
 export class WorkshopPreparationService {
+  private readonly logger = new Logger(WorkshopPreparationService.name);
+  private readonly timings = new WeakMap<
+    Job,
+    { started: number; requestId?: string }
+  >();
   private starts: Promise<unknown> = Promise.resolve();
   private readonly jobs = new Map<string, Job>();
   private readonly unavailableChecks = new WeakSet<PreparationActivity>();
@@ -198,6 +204,10 @@ export class WorkshopPreparationService {
       report,
       draftId: input.draftId ?? preparationId,
     };
+    this.timings.set(job, {
+      started: performance.now(),
+      requestId: currentRequestId(),
+    });
     this.jobs.set(report.preparationId, job);
     // Detached work has a terminal catch; no owner resource writes or publication.
     void this.prepare(job, input, identity, repair)
@@ -209,7 +219,12 @@ export class WorkshopPreparationService {
         await this.finish(job);
       })
       .catch(() => {
-        /* Storage failure leaves an interrupted, non-ready saved job. */
+        this.logger.error({
+          event: 'publishing_preparation_checkpoint',
+          outcome: 'failed',
+          requestId: this.timings.get(job)?.requestId,
+          preparationId: report.preparationId,
+        });
       });
     return structuredClone(report);
   }
@@ -658,5 +673,19 @@ export class WorkshopPreparationService {
     job.finished = Date.now();
     job.report.updatedAt = new Date().toISOString();
     await this.checkpoint(job);
+    const timing = this.timings.get(job);
+    const entry = {
+      event: 'publishing_preparation',
+      outcome: job.report.status,
+      ready: job.report.ready,
+      preparationId: job.report.preparationId,
+      requestId: timing?.requestId,
+      durationMs: timing
+        ? Math.round(performance.now() - timing.started)
+        : undefined,
+    };
+    if (job.report.status === 'failed' || !job.report.ready)
+      this.logger.warn(entry);
+    else this.logger.log(entry);
   }
 }

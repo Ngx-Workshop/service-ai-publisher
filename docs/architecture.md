@@ -8,6 +8,20 @@ HTTP/MCP → PublishingController administrator authorization → PublishingTool
 REST owner adapters. Native endpoints are `/publisher/tools` and `/mcp/publishing`.
 The publisher exposes sixteen authoring tools; no catalog endpoint is registered.
 
+AppModule composes configuration, the independent operational ObservabilityModule
+and PublishingModule. PublishingModule owns its controller, auth client, HttpModule,
+config provider, repository and domain services; it exports no providers.
+Dependencies remain acyclic: tools → preparations/agent/runs/repository/owner;
+preparations → agent/repository/owner; agent/runs → owner; owner → HTTP/config;
+repository → config. Authorization/Origin and MCP lifecycle remain transport
+responsibilities in the controller, before JSON processing.
+
+HTTP middleware carries its generated request UUID through AsyncLocalStorage.
+Publisher logs bounded tool outcomes, failed owner calls and terminal preparation
+and publishing outcomes using native contextual Logger objects. Preparation
+timings/context are process-local WeakMap metadata, never persisted in checkpoints.
+See [observability](observability.md) for privacy and correlation limits.
+
 `src/publisher.config.ts` validates owner URLs, port, model settings and absolute
 journal path. `src/main.ts` disables automatic body parsing so authorization runs
 before bounded JSON processing. The controller validates bearer credentials with
